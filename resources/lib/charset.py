@@ -45,3 +45,30 @@ def bundled_charset() -> tuple[str, ...]:
             if ch not in seen:
                 seen.append(ch)
     return tuple(seen)
+
+
+# The drum a real board carries: blank, the alphabet, the digits, and the
+# handful of marks that appear in ordinary prose. Everything else the glyph
+# set can render -- accented capitals, currency, arrows, another script --
+# is added to the drum on demand, the first time a board actually asks for
+# it. See Drum.ensure.
+#
+# Keeping this small is what makes the animation read correctly. With the
+# full 142-character set on the drum, Z -> A is 117 steps and gets sampled
+# at stride 10, so the cell scatters through accented forms and symbols
+# instead of spinning through the alphabet. At core size the same move is
+# contiguous, every character shown, exactly as hardware behaves.
+CORE_PUNCTUATION = " ,.:;!?-'\u2014\u00b0"
+
+
+def core_drum() -> tuple[str, ...]:
+    """The characters a freshly built drum starts with."""
+    core = [BLANK, TOFU]
+    core += [chr(c) for c in range(ord("A"), ord("Z") + 1)]
+    core += [chr(c) for c in range(ord("0"), ord("9") + 1)]
+    core += list(CORE_PUNCTUATION)
+    seen: list[str] = []
+    for ch in core:
+        if ch not in seen:
+            seen.append(ch)
+    return tuple(seen)

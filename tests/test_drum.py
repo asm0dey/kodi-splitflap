@@ -143,3 +143,66 @@ def test_max_steps_negative_raises():
     d = Drum("ABC ")
     with pytest.raises(ValueError):
         d.sequence("A", "C", max_steps=-1)
+
+
+def test_core_drum_is_hardware_sized_not_charset_sized():
+    """Solari modules carried 40-64 flaps; the glyph set renders 142."""
+    from resources.lib.charset import bundled_charset
+    d = Drum(bundled_charset())
+    assert 40 <= len(d.chars) <= 64
+    assert len(d.chars) < len(bundled_charset())
+
+
+def test_core_drum_keeps_common_walks_contiguous():
+    """The whole point of a small drum: ordinary text does not get sampled."""
+    from resources.lib.charset import bundled_charset
+    d = Drum(bundled_charset())
+    assert d.distance(" ", "A") == 1
+    assert d.distance("E", "F") == 1
+    # Z -> A is the worst common case and was 117 steps on the full set
+    assert d.distance("Z", "A") < 30
+
+
+def test_ensure_adds_a_renderable_character():
+    d = Drum("ABÉ ")
+    assert not d.contains("É")
+    assert d.ensure("É") is True
+    assert d.contains("É")
+    assert d.ensure("É") is False      # already there, no rebuild
+
+
+def test_ensure_ignores_characters_the_glyph_set_cannot_render():
+    d = Drum("AB ")
+    assert d.ensure("Ж") is False
+    assert not d.contains("Ж")
+
+
+def test_ensure_appends_so_existing_positions_do_not_move():
+    """A rare character must not shove the alphabet around."""
+    d = Drum("ABÉ ")
+    before = d.chars
+    d.ensure("É")
+    assert d.chars[:len(before)] == before
+    assert d.chars[-1] == "É"
+
+
+def test_growing_the_drum_does_not_disturb_a_flap_in_flight():
+    """Cells hold characters, never drum indices, so growth is safe."""
+    from resources.lib.flap import STEP_MS, FlapMachine
+
+    d = Drum("ABCDEFGHÉ ")
+    m = FlapMachine(d, 1, 1, col_delay_ms=0, row_delay_ms=0, jitter_ms=0)
+    m.retarget(("A",), 0)
+    t = 0
+    while not m.settled:
+        m.tick(t)
+        t += STEP_MS // 2
+
+    m.retarget(("H",), 0)
+    m.tick(0)                       # mid-flight
+    d.ensure("É")              # drum grows underneath it
+    t = 0
+    while not m.settled and t < 20000:
+        m.tick(t)
+        t += STEP_MS // 2
+    assert m.current_grid() == ("H",)

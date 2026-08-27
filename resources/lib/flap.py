@@ -31,10 +31,11 @@ class PaintOp(NamedTuple):
 
 
 class _Cell:
-    __slots__ = ("char", "phase", "seq", "start_ms", "step")
+    __slots__ = ("char", "phase", "seq", "start_ms", "step", "top_char")
 
     def __init__(self, char: str) -> None:
         self.char = char
+        self.top_char = char
         self.seq: tuple[str, ...] = ()
         self.step = 0
         self.phase = 0          # 0 = top pending, 1 = bottom pending
@@ -85,6 +86,16 @@ class FlapMachine:
         """
         if len(grid) != self._rows:
             raise ValueError(f"expected {self._rows} rows, got {len(grid)}")
+
+        # Grow the drum to cover this board before computing any walk. The
+        # drum starts at hardware size (blank, A-Z, 0-9, common marks) so
+        # ordinary text spins contiguously; a character outside that -- an
+        # accented capital, a currency sign, another script -- joins the drum
+        # the first time a board asks for it. Cells hold characters rather
+        # than drum indices, so growing it here cannot disturb a flap already
+        # in flight.
+        self._drum.ensure("".join(grid))
+
         for r, row in enumerate(grid):
             if len(row) != self._cols:
                 raise ValueError(
@@ -101,30 +112,32 @@ class FlapMachine:
                 # here is the target-side counterpart to `Drum._pos`
                 # treating an unknown CURRENT character as blank.
                 target = raw_target if self._drum.contains(raw_target) else TOFU
-                # cell.char only updates when the BOTTOM half lands. In the
-                # hinge state (phase 1: top landed, bottom still pending --
-                # the whole point of the animation) the character actually
-                # on screen is cell.seq[cell.step], not the stale cell.char.
-                # Retargeting from the stale value can walk the drum
-                # backward from what's visibly displayed.
-                cur = cell.seq[cell.step] if cell.phase == 1 else cell.char
+                # Retarget from what is VISIBLY on the top half, not from
+                # cell.char -- which tracks the bottom and lags by one for
+                # the whole walk. Retargeting from the stale bottom value
+                # would walk the drum backward from what the viewer sees.
+                cur = cell.top_char
                 seq = self._drum.sequence(cur, target, self._max_steps)
                 if not seq:
-                    if cell.phase == 1:
-                        # Mid-hinge and already arrived: the top face shows
-                        # `cur`, which is exactly the new target, so no
-                        # further travel is needed. But the bottom half is
-                        # still physically in flight for THIS step and must
-                        # still land to sync the display -- truncate the
-                        # sequence right after the current step instead of
-                        # abandoning it, leaving start_ms/step/phase (and so
-                        # the pending bottom's due time) untouched.
-                        cell.seq = cell.seq[: cell.step + 1]
+                    # The top already shows the new target. The bottom may
+                    # still trail it, and abandoning the walk now would strand
+                    # the tile permanently mismatched -- top on the target,
+                    # bottom on whatever it last landed. Give it a one-entry
+                    # sequence so the bottom converges.
+                    if cell.char != cell.top_char:
+                        cell.seq = (cell.top_char, cell.top_char)
+                        cell.step = 0
+                        cell.phase = 1
                     else:
                         cell.seq = ()
                         cell.step = 0
+                        cell.phase = 0
                     continue
-                cell.seq = seq
+                # Padded with a repeat of the target: the bottom half trails
+                # the top by one entry, so it needs one extra step to land on
+                # the same character. The duplicated top op is suppressed in
+                # tick(), so this costs no visible frame and no setImage.
+                cell.seq = (*seq, seq[-1])
                 cell.step = 0
                 cell.phase = 0
                 stagger = (
@@ -149,12 +162,26 @@ class FlapMachine:
                     break
                 char = cell.seq[cell.step]
                 if cell.phase == 0:
-                    ops.append(PaintOp(idx, "top", char))
+                    # The top shows the incoming character. Skipped when it
+                    # already does -- the sequence's padded final entry
+                    # repeats the target, and repainting it would cost a
+                    # setImage for no visible change.
+                    if char != cell.top_char:
+                        ops.append(PaintOp(idx, "top", char))
+                        cell.top_char = char
                     cell.phase = 1
                 else:
-                    ops.append(PaintOp(idx, "bottom", char))
+                    # The bottom trails the top by one entry for the whole
+                    # walk, converging only on the last step. That sustained
+                    # mismatch IS the hinge: resolving it every step made the
+                    # tile show a clean settled letter between every pair of
+                    # frames, which reads as letters changing rather than a
+                    # card falling.
+                    if cell.step > 0:
+                        trailing = cell.seq[cell.step - 1]
+                        ops.append(PaintOp(idx, "bottom", trailing))
+                        cell.char = trailing
                     cell.phase = 0
-                    cell.char = char
                     cell.step += 1
         return ops
 
