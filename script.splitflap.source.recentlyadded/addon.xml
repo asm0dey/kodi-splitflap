@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.splitflap.source.recentlyadded" name="Split-Flap — Recently Added" version="0.1.0" provider-name="finkel">
+<addon id="script.splitflap.source.recentlyadded" name="Split-Flap — Recently Added" version="0.1.1" provider-name="finkel">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
+  <!-- Both, deliberately: the module extension is how the screensaver
+       imports source.py, and the script extension is what makes Kodi's
+       add-on browser show it at all (it hides pure modules as
+       dependencies). Running it just says what it is for. -->
+  <extension point="xbmc.python.script" library="default.py" name="Split-Flap — Recently Added">
+    <provides>executable</provides>
+  </extension>
   <extension point="xbmc.python.module" library="."/>
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">Latest library additions for the Split-Flap Board</summary>

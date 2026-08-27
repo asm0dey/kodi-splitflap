@@ -14,3 +14,7 @@ msgstr ""
 msgctxt "#30011"
 msgid "How many recent items to cycle"
 msgstr ""
+
+msgctxt "#30020"
+msgid "This add-on supplies boards to the Split-Flap Board screensaver. Set the screensaver's Show setting to Add-on, then pick this add-on."
+msgstr ""

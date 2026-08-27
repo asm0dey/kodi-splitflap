@@ -94,29 +94,38 @@ def list_choices(
 
 
 def kodi_list_addons() -> list[tuple[str, str]]:
-    """Enumerate installed python modules via JSON-RPC."""
+    """Enumerate installed contributors via JSON-RPC.
+
+    Both add-on types, because a contributor needs both extension points:
+    xbmc.python.module is how its source.py is imported, but Kodi's add-on
+    browser hides pure modules as dependencies, so it also declares
+    xbmc.python.script to be installable at all. Which type a multi-type
+    add-on answers to is Kodi's business; asking for both and de-duplicating
+    is ours.
+    """
     import json
 
     import xbmc
     import xbmcaddon
 
-    request = json.dumps({
-        "jsonrpc": "2.0", "id": 1, "method": "Addons.GetAddons",
-        "params": {"type": "xbmc.python.module", "enabled": True,
-                   "properties": ["path"]},
-    })
-    reply = json.loads(xbmc.executeJSONRPC(request))
-    out: list[tuple[str, str]] = []
-    for entry in reply.get("result", {}).get("addons", []):
-        addon_id = entry.get("addonid", "")
-        if not addon_id.startswith(SOURCE_PREFIX):
-            continue
-        try:
-            path = xbmcaddon.Addon(addon_id).getAddonInfo("path")
-        except Exception:
-            path = entry.get("path", "")
-        out.append((addon_id, path))
-    return out
+    seen: dict[str, str] = {}
+    for addon_type in ("xbmc.python.module", "xbmc.python.script"):
+        request = json.dumps({
+            "jsonrpc": "2.0", "id": 1, "method": "Addons.GetAddons",
+            "params": {"type": addon_type, "enabled": True,
+                       "properties": ["path"]},
+        })
+        reply = json.loads(xbmc.executeJSONRPC(request))
+        for entry in reply.get("result", {}).get("addons", []):
+            addon_id = entry.get("addonid", "")
+            if not addon_id.startswith(SOURCE_PREFIX) or addon_id in seen:
+                continue
+            try:
+                path = xbmcaddon.Addon(addon_id).getAddonInfo("path")
+            except Exception:
+                path = entry.get("path", "")
+            seen[addon_id] = path
+    return list(seen.items())
 
 
 def kodi_load_module(addon_id: str, path: str) -> object:

@@ -138,9 +138,18 @@ showing the last items it did get.
 
 ## Writing a source add-on
 
-A source add-on supplies board content; this add-on renders it. Declare a
-normal python module with an id under `script.splitflap.source.` and expose
-`create_source()` from `source.py`:
+A source add-on supplies board content; this add-on renders it. Give it an
+id under `script.splitflap.source.`, declare both extension points, and
+expose `create_source()` from `source.py`:
+
+```xml
+<!-- module: how source.py is imported. script: what makes Kodi's add-on
+     browser show it -- pure modules are hidden as dependencies. -->
+<extension point="xbmc.python.script" library="default.py">
+  <provides>executable</provides>
+</extension>
+<extension point="xbmc.python.module" library="."/>
+```
 
 ```python
 # script.splitflap.source.quotes/source.py
@@ -173,10 +182,10 @@ disabled for the session while a source that **hangs** freezes the
 screensaver.
 
 No dependency declaration is needed on either side — this add-on discovers
-any installed, enabled `xbmc.python.module` add-on whose id starts with
+any installed, enabled add-on whose id starts with
 `script.splitflap.source.` and calls its `create_source()`. Set Show to
-Add-on to use it (optionally naming the exact Source add-on id if more than
-one contributor is installed). A contributor that fails to import, has no
+Add-on and pick it with the Source add-on button, which lists every
+installed contributor by name. A contributor that fails to import, has no
 `create_source()`, or whose `next()` raises is skipped and logged — one
 broken contributor never hides the others, and an uninstalled or missing
 contributor falls back to live info.
