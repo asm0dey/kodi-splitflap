@@ -123,11 +123,39 @@ class BoardView:
         the same Geometry.cell_index() build() uses so the two can't drift.
         """
         wanted = frozenset(self._geo.cell_index(row, col) for row, col in cells)
+        # An accent tile swaps TEXTURE as well as tint. colorDiffuse
+        # multiplies, so tinting the near-black card can only darken it --
+        # the accent card is deliberately light so the tint has something to
+        # multiply into. Recolouring alone produced RGB(4, 8, 21): black.
         for cell in self._accent_cells - wanted:
-            self._recolour(cell, self._letter)
+            self._restore(cell)
         for cell in wanted - self._accent_cells:
-            self._recolour(cell, self._accent)
+            self._make_accent(cell)
         self._accent_cells = wanted
+
+    def _make_accent(self, cell: int) -> None:
+        for half in ("top", "bottom"):
+            control = self._halves.get((cell, half))
+            if control is not None:
+                control.setImage(self._accent_texture(half), useCache=True)
+                control.setColorDiffuse(self._accent)
+
+    def _restore(self, cell: int) -> None:
+        """Return an ex-accent tile to a blank letter-coloured card.
+
+        The next paint op overwrites the texture anyway; this matters only
+        for a cell that stays blank, which would otherwise keep the light
+        accent card and read as a bright tile with no reason to be one.
+        """
+        for half in ("top", "bottom"):
+            control = self._halves.get((cell, half))
+            if control is not None:
+                control.setImage(self._index.path(BLANK, half), useCache=True)
+                control.setColorDiffuse(self._letter)
+
+    def _accent_texture(self, half: str) -> str:
+        """The light accent card, resolved through the glyph index."""
+        return self._index.accent_path(half)
 
     def _recolour(self, cell: int, colour: str) -> None:
         for half in ("top", "bottom"):

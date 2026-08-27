@@ -9,7 +9,7 @@ import json
 from collections.abc import Callable, Iterable
 
 from .charset import TOFU
-from .glyphgen import glyph_filename
+from .glyphgen import accent_filename, glyph_filename
 
 
 def glyph_dirs(profile: str, addon_path: str, glyph_pack: str) -> list[str]:
@@ -63,6 +63,25 @@ class GlyphIndex:
                 )
         self._resolved[key] = found
         return found
+
+    def accent_path(self, half: str) -> str:
+        """Resolve the accent tile's texture through the same search order.
+
+        A pack may ship its own accent card; otherwise the bundled one is
+        used. Unlike a character this has no codepoint, so it cannot fall
+        back to tofu -- a missing accent card raises, because a bright tile
+        silently reverting to a dark one is the bug this whole path exists
+        to fix.
+        """
+        name = accent_filename(half)
+        for directory in self._dirs:
+            path = f"{directory}/{name}"
+            if self._exists(path):
+                return path
+        raise LookupError(
+            f"accent tile {name!r} is missing from every search dir "
+            f"{self._dirs!r} -- the bundled set is incomplete"
+        )
 
     def charset(self, candidates: Iterable[str]) -> set[str]:
         """Characters with BOTH halves present, so a tile can render them."""

@@ -52,3 +52,42 @@ def test_lockfile_also_declares_no_runtime_dependencies():
         "uv.lock declares runtime dependencies for "
         f"screensaver-splitflap: {pkg.get('dependencies')!r}"
     )
+
+
+def _settings_root():
+    import xml.etree.ElementTree as ET
+    return ET.parse(_repo() / "resources" / "settings.xml").getroot()
+
+
+def test_source_specific_settings_are_hidden_for_other_sources():
+    """The settings screen must reflect the chosen source.
+
+    Live-info checkboxes have no meaning while Phrases is selected, and a
+    phrase file has none under Live info. Each conditional setting declares
+    a visible-dependency on `source`.
+    """
+    expected = {
+        "source_addon_id": "contributor",
+        "info_time": "liveinfo",
+        "info_date": "liveinfo",
+        "info_weather": "liveinfo",
+        "info_nowplaying": "liveinfo",
+        "info_combine": "liveinfo",
+        "phrases_file": "phrases",
+        "phrases_url": "phrases",
+    }
+    found = {}
+    for setting in _settings_root().iter("setting"):
+        dep = setting.find("./dependencies/dependency[@type='visible']")
+        if dep is not None and dep.get("setting") == "source":
+            found[setting.get("id")] = (dep.text or "").strip()
+    assert found == expected
+
+
+def test_unconditional_settings_have_no_source_dependency():
+    """Board geometry, timing, colours and the glyph pack apply to every source."""
+    always = {"rows", "hold_seconds", "max_steps", "letter_colour",
+              "accent_colour", "source", "glyph_pack"}
+    for setting in _settings_root().iter("setting"):
+        if setting.get("id") in always:
+            assert setting.find("./dependencies") is None, setting.get("id")

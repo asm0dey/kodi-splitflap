@@ -44,29 +44,53 @@
           <control type="spinner" format="string"/>
         </setting>
         <setting id="source_addon_id" type="string" label="30024">
+          <dependencies>
+            <dependency type="visible" setting="source" operator="is">contributor</dependency>
+          </dependencies>
           <level>0</level><default></default><control type="edit" format="string"/>
         </setting>
         <setting id="info_time" type="boolean" label="30030">
+          <dependencies>
+            <dependency type="visible" setting="source" operator="is">liveinfo</dependency>
+          </dependencies>
           <level>0</level><default>true</default><control type="toggle"/>
         </setting>
         <setting id="info_date" type="boolean" label="30031">
+          <dependencies>
+            <dependency type="visible" setting="source" operator="is">liveinfo</dependency>
+          </dependencies>
           <level>0</level><default>true</default><control type="toggle"/>
         </setting>
         <setting id="info_weather" type="boolean" label="30032">
+          <dependencies>
+            <dependency type="visible" setting="source" operator="is">liveinfo</dependency>
+          </dependencies>
           <level>0</level><default>true</default><control type="toggle"/>
         </setting>
         <setting id="info_nowplaying" type="boolean" label="30033">
+          <dependencies>
+            <dependency type="visible" setting="source" operator="is">liveinfo</dependency>
+          </dependencies>
           <level>0</level><default>false</default><control type="toggle"/>
         </setting>
         <setting id="info_combine" type="boolean" label="30034">
+          <dependencies>
+            <dependency type="visible" setting="source" operator="is">liveinfo</dependency>
+          </dependencies>
           <level>0</level><default>true</default><control type="toggle"/>
         </setting>
         <setting id="phrases_file" type="path" label="30040">
+          <dependencies>
+            <dependency type="visible" setting="source" operator="is">phrases</dependency>
+          </dependencies>
           <level>0</level><default></default>
           <constraints><writable>false</writable></constraints>
           <control type="button" format="file"/>
         </setting>
         <setting id="phrases_url" type="string" label="30041">
+          <dependencies>
+            <dependency type="visible" setting="source" operator="is">phrases</dependency>
+          </dependencies>
           <level>1</level><default></default><control type="edit" format="string"/>
         </setting>
       </group>

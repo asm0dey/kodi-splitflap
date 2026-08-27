@@ -27,6 +27,50 @@ FACE_SHADE = 4          # ...and darkens slightly toward its own bottom
 FLAP_SHADOW = 14        # the upper flap's shadow cast onto the lower half
 FLAP_SHADOW_ROWS = 18   # how far that shadow reaches down
 
+# The accent tile is a LIGHT card, and it has to be. colorDiffuse multiplies,
+# so tinting the near-black card above can only ever darken it -- 24 x #2B5CE6
+# is RGB(4, 8, 21), which is black. A light card gives the tint something to
+# multiply into: 235 x #2B5CE6 is RGB(39, 84, 211), a solid blue tile like the
+# one on a real board.
+ACCENT_CARD_VALUE = 235
+ACCENT_NAME = "accent"
+
+
+def accent_filename(half: str) -> str:
+    """The accent tile's texture name. Not a character, so not codepoint-named."""
+    return f"{'t' if half == 'top' else 'b'}_{ACCENT_NAME}.png"
+
+
+def render_accent(out_dir: str, half_w: int, half_h: int) -> list[str]:
+    """Render the accent tile: a light, blank card carrying the hinge.
+
+    Light because colorDiffuse multiplies -- see ACCENT_CARD_VALUE.
+    """
+    from PIL import Image, ImageDraw
+
+    full_h = half_h * 2
+    card = Image.new("L", (half_w, full_h), ACCENT_CARD_VALUE)
+    draw = ImageDraw.Draw(card)
+    for half_top in (0, half_h):
+        for y in range(half_h):
+            t = y / half_h
+            draw.line([(0, half_top + y), (half_w, half_top + y)],
+                      fill=max(0, ACCENT_CARD_VALUE - int(18 * t)))
+    for y in range(min(FLAP_SHADOW_ROWS, half_h)):
+        t = y / FLAP_SHADOW_ROWS
+        draw.line([(0, half_h + y), (half_w, half_h + y)],
+                  fill=max(0, ACCENT_CARD_VALUE - int(30 * (1 - t) ** 1.5)))
+    draw.line([(0, half_h - 1), (half_w, half_h - 1)],
+              fill=max(0, ACCENT_CARD_VALUE - 60), width=2)
+
+    written = []
+    for half, box in (("top", (0, 0, half_w, half_h)),
+                      ("bottom", (0, half_h, half_w, full_h))):
+        name = accent_filename(half)
+        card.crop(box).convert("L").save(os.path.join(out_dir, name), "PNG")
+        written.append(name)
+    return written
+
 
 def glyph_filename(ch: str, half: str) -> str:
     prefix = "t" if half == "top" else "b"
