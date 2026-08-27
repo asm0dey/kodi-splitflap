@@ -46,6 +46,26 @@ class Content:
                 f"refresh_in={self.refresh_in!r})")
 
 
+def coerce(value: Any) -> Content:
+    """Whatever a source answered, as a Content.
+
+    Contributors are documented as being able to return "any object with a
+    next() method" answering with a plain dict -- so the render loop must
+    never assume attribute access. Anything missing defaults the way an
+    omitted argument to Content() does, because a contributor that only
+    fills in `lines` is the common case.
+    """
+    if isinstance(value, Content):
+        return value
+    read = value.get if isinstance(value, dict) else (
+        lambda key, default=None: getattr(value, key, default))
+    return Content(
+        lines=read("lines", ()) or (),
+        accents=read("accents", ()) or (),
+        refresh_in=read("refresh_in", None),
+    )
+
+
 class Source:
     """Duck-typed base. Subclasses set id and implement next()."""
 

@@ -152,3 +152,55 @@ def test_hold_wins_when_refresh_in_is_larger():
     assert content is not None
     assert content.lines == ("B",)
     assert src.calls == 2        # Source called twice (initial + hold expiry)
+
+
+class DictSource:
+    """A contributor written to the documented dict contract."""
+
+    id = "dicty"
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def next(self):
+        return self.payload
+
+
+def test_a_source_may_answer_with_a_plain_dict():
+    source = DictSource({"lines": ["HI"], "accents": [{"before_line": 0}],
+                         "refresh_in": 5.0})
+    content = Rotator(source, hold_s=10).poll(0.0)
+    assert content is not None
+    assert content.lines == ("HI",)
+    assert content.accents == ({"before_line": 0},)
+    assert content.refresh_in == 5.0
+
+
+def test_a_dict_may_leave_everything_out():
+    content = Rotator(DictSource({}), hold_s=10).poll(0.0)
+    assert content is not None
+    assert (content.lines, content.accents, content.refresh_in) == ((), (), None)
+
+
+def test_a_dict_source_still_refreshes_on_its_own_hint():
+    source = DictSource({"lines": ["A"], "refresh_in": 2.0})
+    rotator = Rotator(source, hold_s=100)
+    rotator.poll(0.0)
+    assert rotator.poll(1.0) is None
+    assert rotator.poll(2.0) is not None
+
+
+def test_an_object_with_the_right_attributes_is_accepted_too():
+    class Duck:
+        lines = ("QUACK",)
+        accents = ()
+        refresh_in = None
+
+    class DuckSource:
+        id = "duck"
+
+        def next(self):
+            return Duck()
+
+    content = Rotator(DuckSource(), hold_s=10).poll(0.0)
+    assert content is not None and content.lines == ("QUACK",)

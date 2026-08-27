@@ -13,9 +13,7 @@ hide the working ones.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Protocol
-
-from .base import Content
+from typing import Any, Protocol
 
 SOURCE_PREFIX = "script.splitflap.source."
 
@@ -34,7 +32,7 @@ class _SourceLike(Protocol):
 
     id: str
 
-    def next(self) -> Content:
+    def next(self) -> Any:
         ...
 
 
@@ -70,6 +68,29 @@ def discover(
         except Exception as exc:
             log(f"contributor {addon_id} skipped: {exc!r}")
     return found
+
+
+def list_choices(
+    listed: list[tuple[str, str]],
+    name_of: Callable[[str], str],
+) -> list[tuple[str, str]]:
+    """(id, label) for every installed contributor, for the picker dialog.
+
+    Labelled by add-on name, because an id is not something to make a user
+    read off a remote. A name that cannot be read falls back to the id
+    rather than dropping the contributor from the list -- an unpickable
+    add-on is worse than an ugly label.
+    """
+    out: list[tuple[str, str]] = []
+    for addon_id, _path in listed:
+        if not addon_id.startswith(SOURCE_PREFIX):
+            continue
+        try:
+            label = name_of(addon_id) or addon_id
+        except Exception:
+            label = addon_id
+        out.append((addon_id, label))
+    return sorted(out, key=lambda pair: pair[1].casefold())
 
 
 def kodi_list_addons() -> list[tuple[str, str]]:

@@ -12,9 +12,9 @@ source that HANGS freezes the screensaver -- accepted, since the built-in
 sources cannot hang; revisit when contributor discovery ships.
 """
 from collections.abc import Callable
-from typing import Protocol
+from typing import Any, Protocol
 
-from .sources.base import Content
+from .sources.base import Content, coerce
 
 
 class _SourceLike(Protocol):
@@ -24,9 +24,14 @@ class _SourceLike(Protocol):
     from sources.base because we want structural typing (any object with
     a next() method works), not nominal typing. This allows test sources
     and third-party sources to work without inheriting from a base class.
+
+    next() returns Any, not Content: a contributor may answer with a plain
+    dict, which coerce() normalises. Declaring Content here would type a
+    contract we do not actually require, and did in fact hide the bug where
+    the render loop assumed attribute access.
     """
 
-    def next(self) -> Content:
+    def next(self) -> Any:
         ...
 
 
@@ -50,7 +55,7 @@ class Rotator:
     def _call(self) -> Content:
         if not self.failed:
             try:
-                return self._source.next()
+                return coerce(self._source.next())
             except Exception as exc:
                 self.failed = True
                 source_id = getattr(self._source, "id", "?")
@@ -60,7 +65,7 @@ class Rotator:
                 )
         if self._fallback is not None:
             try:
-                return self._fallback.next()
+                return coerce(self._fallback.next())
             except Exception as exc:
                 self._log(f"fallback source also raised {exc!r}")
         return Content()
