@@ -51,7 +51,7 @@ Install the same zip. Fire OS runs its own screensaver, so first:
 | B1 | Control budget | Board builds without a visible stall. **Spike item 2** — this is the A53-silicon question that cannot be answered from a desktop | **PASS** — runs smoothly on a Fire TV (2026-08-27). Closes the project's longest-standing unknown: 264 controls with ~40 setImage calls per 200ms step are comfortable on A53. No fallback to fewer rows needed. |
 | B2 | Idle cost | With a settled board, `adb shell top -m 5` shows Kodi essentially idle. A settled board emits zero paint ops by design; if CPU is busy, that claim is wrong | |
 | B3 | Flap feel | Watch a full-drum wrap (`9`→`0`) from couch distance. Does `MAX_STEPS = 12` at 200ms/step look right, or should it be higher? **Spike item 0 — a judgement, not a measurement** | |
-| B4 | Transition smoothness | During a board change, no stutter. Glyph resolution is memoised; if it stutters, that memoisation is not working as intended | |
+| B4 | Transition smoothness | During a board change, no stutter. Glyph resolution is memoised; if it stutters, that memoisation is not working as intended | **PASS** — smooth on a Fire TV at 0.1.6, with the housing drawn (4 extra controls on top of 264 tiles). |
 | B5 | Dismissal under load | Press a key *during* a flap transition. Clean exit, no crash. This is the teardown race that was fixed — B5 is what confirms the fix | |
 | B6 | Texture memory | 285 glyph textures resident worst case (~24MB). No out-of-memory, no texture thrashing | |
 | B7 | GUI resolution | Check **Settings → System → Display**. Fire Sticks often render the GUI at 1080p even on a 4K panel; at 4K the glyphs are pixel-perfect 1:1 | |
