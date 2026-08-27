@@ -5,6 +5,7 @@ import os
 import random
 import threading
 import time
+import traceback
 from typing import TYPE_CHECKING, Any
 
 import xbmc
@@ -44,10 +45,17 @@ def log(msg: str) -> None:
     xbmc.log(f"splitflap: {msg}", xbmc.LOGINFO)
 
 
+def log_error(context: str) -> None:
+    xbmc.log(f"splitflap: {context}:\n{traceback.format_exc()}", xbmc.LOGERROR)
+
+
 def _read_text(path: str) -> str:
+    # xbmcvfs, not a bare open(): phrases_file is a type="path" setting, so
+    # the user can point it at an SMB/NFS share via Kodi's file picker --
+    # only Kodi's own VFS (not the local libc open()) can read those.
     if not xbmcvfs.exists(path):
         return ""
-    with open(path, encoding="utf-8", errors="replace") as handle:
+    with xbmcvfs.File(path) as handle:
         return handle.read()
 
 
@@ -88,23 +96,31 @@ class Screensaver(xbmcgui.WindowXMLDialog):
         self._cfg = config.read()
 
     def onInit(self) -> None:
-        cfg = self._cfg
-        geo = compute(rows=cfg["rows"])
-        dirs = glyph_dirs(cfg["profile"], cfg["addon_path"], cfg["glyph_pack"])
-        index = GlyphIndex(dirs, xbmcvfs.exists)
-        available = index.charset(bundled_charset())
-        drum = Drum(available)
+        # Guarded end to end: an unhandled exception here would leave
+        # self._thread never started, so nothing would ever call close()
+        # and the modal screensaver would be stuck open with no way to
+        # dismiss it short of force-quitting Kodi.
+        try:
+            cfg = self._cfg
+            geo = compute(rows=cfg["rows"])
+            dirs = glyph_dirs(cfg["profile"], cfg["addon_path"], cfg["glyph_pack"])
+            index = GlyphIndex(dirs, xbmcvfs.exists)
+            available = index.charset(bundled_charset())
+            drum = Drum(available)
 
-        self._geo = geo
-        self._view = BoardView(self, geo, index,
-                                cfg["letter_colour"], cfg["accent_colour"])
-        self._view.build()
-        self._flap = FlapMachine(drum, geo.rows, geo.cols,
-                                  max_steps=cfg["max_steps"])
-        # daemon=True: if the join in __main__ times out on a wedged thread,
-        # that must never keep the Kodi process alive.
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
+            self._geo = geo
+            self._view = BoardView(self, geo, index,
+                                    cfg["letter_colour"], cfg["accent_colour"])
+            self._view.build()
+            self._flap = FlapMachine(drum, geo.rows, geo.cols,
+                                      max_steps=cfg["max_steps"])
+            # daemon=True: if the join in __main__ times out on a wedged
+            # thread, that must never keep the Kodi process alive.
+            self._thread = threading.Thread(target=self._run, daemon=True)
+            self._thread.start()
+        except Exception:
+            log_error("onInit failed")
+            self.close()
 
     def _run(self) -> None:
         # Source construction happens here, on the background thread, not in
@@ -112,45 +128,55 @@ class Screensaver(xbmcgui.WindowXMLDialog):
         # onInit runs on Kodi's GUI thread. Building the rotator on the GUI
         # thread would freeze the whole interface (not just this
         # screensaver) for up to remote.TIMEOUT_S seconds.
-        cfg = self._cfg
-        rotator = Rotator(
-            _build_source(cfg), cfg["hold_seconds"],
-            fallback=LiveInfoSource(cfg["info_flags"], cfg["info_combine"]),
-            log=log,
-        )
-        monitor = xbmc.Monitor()
-        was_settled = True
-        while not self._stop and not monitor.abortRequested():
-            if not xbmc.getCondVisibility("System.ScreenSaverActive"):
-                break
-            now = time.time()
-            now_ms = int(now * 1000)
-            content = rotator.poll(now)
-            if content is not None:
-                board = build_board(content.lines, content.accents,
-                                     self._geo.rows, self._geo.cols)
-                self._view.set_accents(board.accents)
-                # retarget and tick share one clock (now_ms) -- see
-                # flap.FlapMachine.retarget's own docstring on why a
-                # mismatched clock makes every cell dump its full sequence
-                # on the first tick instead of animating.
-                self._flap.retarget(board.grid, now_ms)
-                was_settled = False
-            ops = self._flap.tick(now_ms)
-            if ops:
-                self._view.paint(ops)
-            if self._flap.settled and not was_settled:
-                rotator.settled(now)
-                was_settled = True
-            if monitor.waitForAbort(FRAME_MS / 1000.0):
-                break
-        # _run is the SOLE caller of close(), and only after the loop above
-        # has fully exited -- so nothing ever calls a control method
-        # (paint/retarget/tick/set_accents, all above) after close() runs.
-        # onAction only flips self._stop; it must never call close() itself,
-        # or the GUI thread could tear the window down while this thread is
-        # still mid-paint.
-        self.close()
+        # Guarded end to end: an unhandled exception here would otherwise
+        # skip close() entirely (no try/finally), leaving doModal() blocked
+        # forever -- onAction only flips self._stop, it never closes the
+        # window itself. Live triggers include _read_text/_read_pack_text's
+        # VFS reads, paint(), and source discover().
+        try:
+            cfg = self._cfg
+            rotator = Rotator(
+                _build_source(cfg), cfg["hold_seconds"],
+                fallback=LiveInfoSource(cfg["info_flags"], cfg["info_combine"]),
+                log=log,
+            )
+            monitor = xbmc.Monitor()
+            was_settled = True
+            while not self._stop and not monitor.abortRequested():
+                if not xbmc.getCondVisibility("System.ScreenSaverActive"):
+                    break
+                now = time.time()
+                now_ms = int(now * 1000)
+                content = rotator.poll(now)
+                if content is not None:
+                    board = build_board(content.lines, content.accents,
+                                         self._geo.rows, self._geo.cols)
+                    self._view.set_accents(board.accents)
+                    # retarget and tick share one clock (now_ms) -- see
+                    # flap.FlapMachine.retarget's own docstring on why a
+                    # mismatched clock makes every cell dump its full
+                    # sequence on the first tick instead of animating.
+                    self._flap.retarget(board.grid, now_ms)
+                    was_settled = False
+                ops = self._flap.tick(now_ms)
+                if ops:
+                    self._view.paint(ops)
+                if self._flap.settled and not was_settled:
+                    rotator.settled(now)
+                    was_settled = True
+                if monitor.waitForAbort(FRAME_MS / 1000.0):
+                    break
+        except Exception:
+            log_error("render loop failed")
+        finally:
+            # _run is the SOLE caller of close(), and only after the try
+            # block above has fully exited (normally or via the except
+            # above) -- so nothing ever calls a control method
+            # (paint/retarget/tick/set_accents, all above) after close()
+            # runs. onAction only flips self._stop; it must never call
+            # close() itself, or the GUI thread could tear the window down
+            # while this thread is still mid-paint.
+            self.close()
 
     def onAction(self, action: xbmcgui.Action) -> None:
         self._stop = True
