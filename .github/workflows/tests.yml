@@ -1,0 +1,27 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    # ubuntu-22.04, not latest: Python 3.8 is EOL and 24.04 images no longer
+    # carry it. 3.8 is Kodi 19's interpreter and is the syntax floor; 3.11 is
+    # what Kodi 21 actually ships, so both are tested.
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest -v
+      - name: no kodi imports in pure modules
+        run: |
+          ! grep -rn "^import xbmc\|^from xbmc" \
+            resources/lib/layout.py resources/lib/flap.py resources/lib/drum.py \
+            resources/lib/geometry.py resources/lib/glyphs.py resources/lib/charset.py \
+            resources/lib/compose.py resources/lib/rotator.py \
+            resources/lib/glyphgen.py resources/lib/sources/base.py resources/lib/sources/phrases.py \
+            resources/lib/sources/remote.py \
+            2>/dev/null
