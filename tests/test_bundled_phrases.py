@@ -1,7 +1,6 @@
 import pathlib
 
 import pytest
-
 from resources.lib.charset import bundled_charset
 from resources.lib.geometry import compute
 from resources.lib.layout import ELLIPSIS, build
@@ -12,7 +11,7 @@ from resources.lib.sources.phrases import parse_phrases, split_author
 # mutation runner, a packaging check) would otherwise fail on a missing file
 # rather than on the thing being tested.
 REPO = pathlib.Path(__file__).resolve().parent.parent
-PATH = REPO / "resources" / "data" / "phrases.txt"
+PATH = REPO / "screensaver.splitflap" / "resources" / "data" / "phrases.txt"
 
 
 def load():

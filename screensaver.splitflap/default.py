@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 import xbmc
 import xbmcgui
 import xbmcvfs
-
 from resources.lib import config
 from resources.lib.board import BoardView
 from resources.lib.charset import bundled_charset

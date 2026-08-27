@@ -13,7 +13,7 @@ dev = ["pytest==8.3.4", "Pillow==11.1.0", "debugpy==1.8.11", "ruff==0.9.6", "Kod
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "screensaver.splitflap"]
 
 [tool.pyright]
 # The add-on is imported with the repo root on sys.path (pytest does this via

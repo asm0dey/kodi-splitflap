@@ -20,7 +20,7 @@ ID="screensaver.splitflap"
 # properly instead and read the <addon> element's version attribute.
 VERSION="$(python3 -c '
 import xml.etree.ElementTree as ET
-print(ET.parse("addon.xml").getroot().attrib["version"])
+print(ET.parse("screensaver.splitflap/addon.xml").getroot().attrib["version"])
 ')"
 
 OUT="build/${ID}-${VERSION}.zip"
@@ -31,16 +31,17 @@ mkdir -p "build/staging/${ID}" build
 # Runtime files only. Deliberately excluded: tests/, tools/, the .otf font
 # (build-time input to glyphgen.py only), mutants/, .venv/, __pycache__,
 # .zed/, setup.cfg, pyrightconfig.json, uv.lock, pyproject.toml.
-cp addon.xml default.py "build/staging/${ID}/"
+SRC="screensaver.splitflap"
+cp "$SRC/addon.xml" "$SRC/default.py" "build/staging/${ID}/"
 cp LICENSE "build/staging/${ID}/" 2>/dev/null || true
 for asset in icon.png fanart.jpg; do
-  if [ -f "$asset" ]; then
-    cp "$asset" "build/staging/${ID}/"
+  if [ -f "$SRC/$asset" ]; then
+    cp "$SRC/$asset" "build/staging/${ID}/"
   else
     echo "warning: ${asset} not found -- shipping without it (addon.xml references it)" >&2
   fi
 done
-cp -r resources "build/staging/${ID}/"
+cp -r "$SRC/resources" "build/staging/${ID}/"
 
 # The rendered glyph PNGs are derived from Nimbus Sans (AGPLv3 with font
 # exception); its licence must travel with them even though the .otf input

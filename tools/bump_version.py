@@ -10,7 +10,8 @@ import pathlib
 import re
 import sys
 
-ADDON_XML = pathlib.Path(__file__).resolve().parent.parent / "addon.xml"
+ADDON_XML = (pathlib.Path(__file__).resolve().parent.parent
+             / "screensaver.splitflap" / "addon.xml")
 # Anchored to the <addon> element: the XML declaration also carries a
 # version attribute, and matching that one is a classic way to bump the
 # wrong number.

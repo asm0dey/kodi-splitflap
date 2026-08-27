@@ -1,11 +1,12 @@
 {
   "include": [
-    "resources",
+    "screensaver.splitflap",
     "tools",
     "tests"
   ],
   "extraPaths": [
-    "."
+    ".",
+    "screensaver.splitflap"
   ],
   "venvPath": ".",
   "venv": ".venv",
@@ -15,7 +16,8 @@
     {
       "root": ".",
       "extraPaths": [
-        "."
+        ".",
+        "screensaver.splitflap"
       ]
     }
   ]

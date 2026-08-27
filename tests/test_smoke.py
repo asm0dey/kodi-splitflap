@@ -56,9 +56,14 @@ def test_lockfile_also_declares_no_runtime_dependencies():
     )
 
 
+def _addon():
+    """The add-on directory. Everything shipped lives under it."""
+    return _repo() / "screensaver.splitflap"
+
+
 def _settings_root():
     import xml.etree.ElementTree as ET
-    return ET.parse(_repo() / "resources" / "settings.xml").getroot()
+    return ET.parse(_addon() / "resources" / "settings.xml").getroot()
 
 
 def test_source_specific_settings_are_hidden_for_other_sources():

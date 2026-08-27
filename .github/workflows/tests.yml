@@ -30,11 +30,11 @@ jobs:
       - name: no kodi imports in pure modules
         run: |
           matches=$(grep -rn "^import xbmc\|^from xbmc" \
-            resources/lib/layout.py resources/lib/flap.py resources/lib/drum.py \
-            resources/lib/geometry.py resources/lib/glyphs.py resources/lib/charset.py \
-            resources/lib/compose.py resources/lib/rotator.py resources/lib/colour.py \
-            resources/lib/glyphgen.py resources/lib/sources/base.py resources/lib/sources/phrases.py \
-            resources/lib/sources/remote.py \
+            screensaver.splitflap/resources/lib/layout.py screensaver.splitflap/resources/lib/flap.py screensaver.splitflap/resources/lib/drum.py \
+            screensaver.splitflap/resources/lib/geometry.py screensaver.splitflap/resources/lib/glyphs.py screensaver.splitflap/resources/lib/charset.py \
+            screensaver.splitflap/resources/lib/compose.py screensaver.splitflap/resources/lib/rotator.py screensaver.splitflap/resources/lib/colour.py \
+            screensaver.splitflap/resources/lib/glyphgen.py screensaver.splitflap/resources/lib/sources/base.py screensaver.splitflap/resources/lib/sources/phrases.py \
+            screensaver.splitflap/resources/lib/sources/remote.py \
             2>/dev/null || true)
           if [ -n "$matches" ]; then
             echo "Kodi import found in a pure module:"

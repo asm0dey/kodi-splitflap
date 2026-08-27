@@ -12,8 +12,8 @@ from resources.lib.glyphgen import (
     render_plate,
 )
 
-FONT = "assets/fonts/NimbusSans-Bold.otf"
-OUT = "resources/media/glyphs"
+FONT = "assets/fonts/NimbusSans-Bold.otf"   # repo-relative; run from the root
+OUT = "screensaver.splitflap/resources/media/glyphs"
 # A half at default geometry is ~78x71; render at 2x so 4K stays crisp.
 HALF_W, HALF_H = 156, 142
 
