@@ -11,6 +11,22 @@ from .charset import TOFU
 from .glyphgen import glyph_filename
 
 
+def glyph_dirs(profile: str, addon_path: str, glyph_pack: str) -> list[str]:
+    """Search-dir order for glyph resolution: profile override, pack, bundled.
+
+    Order is load-bearing: earlier directories win when a character exists
+    in more than one, so a per-profile override always beats a configured
+    glyph pack, which always beats the bundled set. `glyph_pack` empty means
+    no pack is configured, so that entry is omitted rather than pointing at
+    an empty `resource://` URI.
+    """
+    dirs = [f"{profile}/glyphs"]
+    if glyph_pack:
+        dirs.append(f"resource://{glyph_pack}")
+    dirs.append(f"{addon_path}/resources/media/glyphs")
+    return dirs
+
+
 class GlyphIndex:
     def __init__(self, search_dirs: list[str], exists: Callable[[str], bool]) -> None:
         self._dirs = list(search_dirs)

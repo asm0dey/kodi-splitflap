@@ -65,11 +65,6 @@
         <setting id="phrases_url" type="string" label="30041">
           <level>1</level><default></default><control type="edit" format="string"/>
         </setting>
-        <setting id="phrases_refresh_mins" type="integer" label="30042">
-          <level>1</level><default>60</default>
-          <constraints><minimum>5</minimum><step>5</step><maximum>1440</maximum></constraints>
-          <control type="slider" format="integer"/>
-        </setting>
       </group>
     </category>
     <category id="glyphs" label="30003">

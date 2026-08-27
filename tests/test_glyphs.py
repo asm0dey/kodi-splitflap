@@ -1,5 +1,5 @@
 from resources.lib.charset import TOFU
-from resources.lib.glyphs import GlyphIndex
+from resources.lib.glyphs import GlyphIndex, glyph_dirs
 
 
 def fake_fs(*present):
@@ -70,3 +70,17 @@ def test_charset_reports_characters_with_both_halves():
     cs = idx.charset("AB")
     assert "A" in cs
     assert "B" not in cs
+
+
+def test_glyph_dirs_without_pack_omits_resource_entry():
+    dirs = glyph_dirs("profile", "addon", "")
+    assert dirs == ["profile/glyphs", "addon/resources/media/glyphs"]
+
+
+def test_glyph_dirs_with_pack_orders_profile_pack_then_bundled():
+    dirs = glyph_dirs("profile", "addon", "resource.images.splitflap.deco")
+    assert dirs == [
+        "profile/glyphs",
+        "resource://resource.images.splitflap.deco",
+        "addon/resources/media/glyphs",
+    ]

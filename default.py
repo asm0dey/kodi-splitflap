@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 import random
-import sys
 import threading
 import time
 from typing import Any
@@ -12,16 +11,13 @@ import xbmc
 import xbmcgui
 import xbmcvfs
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                 "resources", "lib"))
-
 from resources.lib import config
 from resources.lib.board import BoardView
 from resources.lib.charset import bundled_charset
 from resources.lib.drum import Drum
 from resources.lib.flap import FlapMachine
 from resources.lib.geometry import compute
-from resources.lib.glyphs import GlyphIndex
+from resources.lib.glyphs import GlyphIndex, glyph_dirs
 from resources.lib.layout import build as build_board
 from resources.lib.rotator import Rotator
 from resources.lib.sources.liveinfo import LiveInfoSource
@@ -29,6 +25,12 @@ from resources.lib.sources.phrases import PhraseSource, parse_phrases
 from resources.lib.sources.remote import RemoteCache, http_get
 
 FRAME_MS = 50
+# Bounded generously against the 50ms frame period: a join this long is
+# imperceptible, but it still guarantees `del window` never races a thread
+# still touching controls, without risking a hung shutdown if the thread is
+# wedged (the thread is also a daemon, so a timed-out join can't keep the
+# process alive either).
+THREAD_JOIN_TIMEOUT_S = 2.0
 
 
 def log(msg: str) -> None:
@@ -45,14 +47,6 @@ def _read_text(path: str) -> str:
 def _write_text(path: str, text: str) -> None:
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(text)
-
-
-def _glyph_dirs(cfg: dict[str, Any]) -> list[str]:
-    dirs = [os.path.join(cfg["profile"], "glyphs")]
-    if cfg["glyph_pack"]:
-        dirs.append(f"resource://{cfg['glyph_pack']}")
-    dirs.append(os.path.join(cfg["addon_path"], "resources", "media", "glyphs"))
-    return dirs
 
 
 def _build_source(cfg: dict[str, Any]) -> LiveInfoSource | PhraseSource:
@@ -77,7 +71,8 @@ class Screensaver(xbmcgui.WindowXMLDialog):
     def onInit(self) -> None:
         cfg = self._cfg
         geo = compute(rows=cfg["rows"])
-        index = GlyphIndex(_glyph_dirs(cfg), xbmcvfs.exists)
+        dirs = glyph_dirs(cfg["profile"], cfg["addon_path"], cfg["glyph_pack"])
+        index = GlyphIndex(dirs, xbmcvfs.exists)
         available = index.charset(bundled_charset())
         drum = Drum(available)
 
@@ -87,7 +82,10 @@ class Screensaver(xbmcgui.WindowXMLDialog):
         self._view.build()
         self._flap = FlapMachine(drum, geo.rows, geo.cols,
                                   max_steps=cfg["max_steps"])
-        threading.Thread(target=self._run).start()
+        # daemon=True: if the join in __main__ times out on a wedged thread,
+        # that must never keep the Kodi process alive.
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
 
     def _run(self) -> None:
         # Source construction happens here, on the background thread, not in
@@ -127,11 +125,16 @@ class Screensaver(xbmcgui.WindowXMLDialog):
                 was_settled = True
             if monitor.waitForAbort(FRAME_MS / 1000.0):
                 break
+        # _run is the SOLE caller of close(), and only after the loop above
+        # has fully exited -- so nothing ever calls a control method
+        # (paint/retarget/tick/set_accents, all above) after close() runs.
+        # onAction only flips self._stop; it must never call close() itself,
+        # or the GUI thread could tear the window down while this thread is
+        # still mid-paint.
         self.close()
 
     def onAction(self, action: xbmcgui.Action) -> None:
         self._stop = True
-        self.close()
 
 
 if __name__ == "__main__":
@@ -140,4 +143,18 @@ if __name__ == "__main__":
                               config.ADDON.getAddonInfo("path")),
                           "default", "1080i")
     window.doModal()
+    # doModal() returns once the window is closed (only _run's self.close()
+    # call does that -- see above). Join before deleting the window object
+    # so the background thread can never touch a control on a window that
+    # is being torn down.
+    thread = getattr(window, "_thread", None)
+    if thread is not None:
+        thread.join(timeout=THREAD_JOIN_TIMEOUT_S)
+        if thread.is_alive():
+            xbmc.log(
+                "splitflap: background thread still running after "
+                f"{THREAD_JOIN_TIMEOUT_S}s join timeout; leaking it rather "
+                "than hanging shutdown",
+                xbmc.LOGWARNING,
+            )
     del window

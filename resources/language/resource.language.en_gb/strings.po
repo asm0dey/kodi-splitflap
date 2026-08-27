@@ -75,10 +75,6 @@ msgctxt "#30041"
 msgid "Phrase URL"
 msgstr ""
 
-msgctxt "#30042"
-msgid "Refresh phrases every (minutes)"
-msgstr ""
-
 msgctxt "#30050"
 msgid "Glyph pack add-on id (blank for bundled)"
 msgstr ""
