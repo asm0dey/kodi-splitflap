@@ -190,3 +190,24 @@ def test_readme_download_links_point_at_files_that_exist():
         elif not target.is_file():
             missing.append(url)
     assert not missing, f"README links to files not in docs/repo: {missing}"
+
+
+def test_served_repository_zips_are_tracked_by_git():
+    """Existing on disk is not enough -- Pages serves what git holds.
+
+    .gitignore carries a blanket *.zip, which silently excluded every zip
+    under docs/repo. The result was a repository whose addons.xml listed
+    three add-ons and served none of them: metadata and icons resolved,
+    downloads 404'd.
+    """
+    import subprocess
+    served = _repo() / "docs" / "repo"
+    zips = sorted(served.rglob("*.zip"))
+    assert zips, "docs/repo has no zips; run tools/build_repo.py"
+    ignored = subprocess.run(
+        ["git", "check-ignore", *[str(z) for z in zips]],
+        cwd=_repo(), capture_output=True, text=True,
+    ).stdout.split()
+    assert not ignored, (
+        f"served zips are gitignored, so Pages cannot serve them: {ignored}"
+    )

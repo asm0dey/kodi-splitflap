@@ -10,3 +10,6 @@ mutants/
 __pycache__/
 .pytest_cache/
 *.zip
+# ...but the served repository's zips ARE the product: without them Kodi
+# gets an addons.xml listing add-ons it cannot download.
+!docs/repo/**/*.zip
