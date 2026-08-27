@@ -4,6 +4,13 @@
 # no build tooling, no build-time-only font inputs.
 set -euo pipefail
 
+# --bump increments the patch version first. Kodi refuses an
+# install-from-zip that is not newer than the installed copy, so a rebuild
+# at the same version silently fails to install over itself.
+if [[ "${1:-}" == "--bump" ]]; then
+  python3 tools/bump_version.py patch > /dev/null
+fi
+
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ID="screensaver.splitflap"

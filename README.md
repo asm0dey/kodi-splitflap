@@ -149,12 +149,18 @@ font exception) — see `assets/fonts/LICENSE-nimbus.txt`.
 
 Kodi refuses an install-from-zip whose version is not newer than the one
 already installed, so a rebuilt zip at the same version silently fails to
-install. Either bump `version` in `addon.xml` before packaging, or remove the
-add-on first:
+install. Build with `--bump` and each zip gets the next patch version, so it installs
+over the previous one:
 
 ```bash
-# bump, then rebuild
-./tools/build_addon.sh
+./tools/build_addon.sh --bump      # 0.1.1 -> 0.1.2 -> 0.1.3 ...
+./tools/build_addon.sh             # rebuild at the current version
+python3 tools/bump_version.py minor   # or major, when it is a real release
+```
+
+To reinstall the *same* version instead, remove the add-on first:
+
+```bash
 
 # or, to reinstall the same version
 rm -rf ~/.kodi/addons/screensaver.splitflap    # desktop

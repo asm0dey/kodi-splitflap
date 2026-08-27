@@ -1,3 +1,5 @@
+
+
 def _repo():
     """The repo root, anchored to this file rather than the cwd."""
     import pathlib
@@ -91,3 +93,32 @@ def test_unconditional_settings_have_no_source_dependency():
     for setting in _settings_root().iter("setting"):
         if setting.get("id") in always:
             assert setting.find("./dependencies") is None, setting.get("id")
+
+
+def test_version_bump_targets_the_addon_element_not_the_xml_declaration():
+    """The XML declaration also has a version attribute.
+
+    Matching that one instead is a classic way to bump the wrong number --
+    the plan's original packaging script did exactly that.
+    """
+    from tools.bump_version import bump
+
+    text = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<addon id="screensaver.splitflap" name="X"'
+        ' version="0.1.1" provider-name="p">\n'
+        "</addon>\n"
+    )
+    updated, version = bump(text, "patch")
+    assert version == "0.1.2"
+    assert 'version="1.0" encoding' in updated      # declaration untouched
+    assert 'name="X" version="0.1.2"' in updated
+
+
+def test_version_bump_parts():
+    from tools.bump_version import bump
+
+    text = '<addon id="a" version="1.2.3">'
+    assert bump(text, "patch")[1] == "1.2.4"
+    assert bump(text, "minor")[1] == "1.3.0"
+    assert bump(text, "major")[1] == "2.0.0"
