@@ -27,6 +27,8 @@ pythonVersion = "3.11"
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+# mutmut writes a mutated copy of the tree here; it is scratch, not source.
+extend-exclude = ["mutants", "build"]
 
 [tool.ruff.lint]
 # E/F are the defaults; I sorts imports, UP modernises syntax left over from

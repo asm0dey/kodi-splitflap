@@ -1,12 +1,27 @@
+import pathlib
+
+import pytest
+
 from resources.lib.charset import bundled_charset
 from resources.lib.geometry import compute
 from resources.lib.layout import ELLIPSIS, build
 from resources.lib.sources.phrases import parse_phrases, split_author
 
-PATH = "resources/data/phrases.txt"
+# Anchored to this file, not the working directory: pytest is normally run
+# from the repo root, but any runner that copies or relocates the tree (a
+# mutation runner, a packaging check) would otherwise fail on a missing file
+# rather than on the thing being tested.
+REPO = pathlib.Path(__file__).resolve().parent.parent
+PATH = REPO / "resources" / "data" / "phrases.txt"
 
 
 def load():
+    if not PATH.exists():
+        # A mutation runner copies only Python sources, so the bundled data
+        # is absent from its tree. These tests check shipped content rather
+        # than logic, so they cannot kill a mutant -- skipping is honest.
+        # test_smoke.py asserts the file's presence in a real checkout.
+        pytest.skip(f"bundled phrase data absent from this tree: {PATH}")
     with open(PATH, encoding="utf-8") as handle:
         return parse_phrases(handle.read())
 

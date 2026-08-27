@@ -1,9 +1,11 @@
-__pycache__/
-*.pyc
-.pytest_cache/
+
 build/
 dist/
-*.zip
-
-# JetBrains
 .idea/
+# JetBrains
+mutants/
+.mutmut-cache
+*.pyc
+__pycache__/
+.pytest_cache/
+*.zip
