@@ -179,11 +179,11 @@ A character absent from the current drum — after a mid-session pack change —
 as blank and flaps from there.
 
 **Our drum is longer than any real board's.** Solari modules carried 40 flaps (the
-original Liege board) up to 64 (Changi T2); bundling extended ASCII gives us ~145 in one
+original Liege board) up to 64 (Changi T2); bundling extended ASCII gives us 142 in one
 cycle. Hardware never mixed accented capitals into the letter drum.
 
 This makes stride sampling visible rather than cosmetic: a real 40-flap revolution shows
-40 contiguous characters, while 12 steps across 145 shows every ~12th, which reads as
+40 contiguous characters, while 12 steps across 142 shows every ~12th, which reads as
 scrambling rather than a drum spinning through the alphabet. `MAX_STEPS` is therefore a
 **tuning constant, not a derived value** — raising it toward 40 buys contiguity at 200ms
 each, so the trade is directly wall-clock time. Settle it on a TV during the spike.
@@ -386,6 +386,10 @@ visual end — the left. **Out of scope:** Arabic and Devanagari. A cell grid ca
 render connected scripts, and no amount of glyph generation fixes it. Real split-flap
 hardware has the same limitation.
 
+`layout.build`'s `rtl` parameter implements this and is unit-tested, but nothing in
+`default.py` passes it and there is no settings entry to control it, so RTL rendering
+is not currently reachable at runtime.
+
 ## Glyph pipeline
 
 ### Resolution order
@@ -411,7 +415,7 @@ range minus guesswork:
 | CP1252 typographic extras (`€ — – " " ' ' …`) | ~10 |
 | U+039C, uppercase target of `µ` | 1 |
 | tofu, the missing-glyph marker | 1 |
-| **total** | **~145 chars, 290 files, ~1 MB** |
+| **total** | **142 chars, 284 files, ~1 MB** |
 
 Tofu is a bundled glyph like any other, so it is always present regardless of which pack
 is selected — the fallback can never itself be missing.
