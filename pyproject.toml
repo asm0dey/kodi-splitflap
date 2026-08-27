@@ -11,3 +11,12 @@ dev = ["pytest==8.3.4", "Pillow==11.1.0"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.pyright]
+# The add-on is imported with the repo root on sys.path (pytest does this via
+# pythonpath, Kodi via default.py's sys.path insert), so tell pyright the same.
+extraPaths = ["."]
+include = ["resources", "tools", "tests"]
+# Kodi 21 (Omega) ships 3.11 and it is the floor; pinning it here makes the
+# editor enforce the same constraint CI does.
+pythonVersion = "3.11"
