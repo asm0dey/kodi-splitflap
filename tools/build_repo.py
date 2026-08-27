@@ -91,7 +91,8 @@ def main() -> int:
 
     xml = ET.tostring(index, encoding="utf-8", xml_declaration=True)
     (DOCS / "addons.xml").write_bytes(xml)
-    digest = hashlib.md5(xml).hexdigest()          # noqa: S324 - Kodi requires md5
+    # md5 because Kodi requires it, not as a security choice
+    digest = hashlib.md5(xml).hexdigest()
     (DOCS / "addons.xml.md5").write_text(digest, encoding="utf-8")
     print(f"\naddons.xml  {len(addons)} add-ons, md5 {digest}")
     return 0

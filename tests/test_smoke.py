@@ -150,3 +150,20 @@ def test_string_settings_with_an_empty_default_allow_empty():
             f"{setting.get('id')} has an empty default but no allowempty; "
             "Kodi will drop the setting"
         )
+
+
+def test_lint_and_type_tools_are_pinned():
+    """CI installs the pinned versions; a local checkout must match.
+
+    ruff's rule set changes between releases, so an unpinned local install
+    reports different findings than CI does -- which is how an E402 failure
+    reached a pull request while the local gate said "All checks passed".
+    """
+    import re
+    text = (_repo() / "pyproject.toml").read_text(encoding="utf-8")
+    dev = re.search(r"^dev\s*=\s*\[([^\]]*)\]", text, re.MULTILINE)
+    assert dev, "dev extra missing from pyproject.toml"
+    for tool in ("ruff", "pytest", "pyright"):
+        assert re.search(rf'"{tool}==\d', dev.group(1)), (
+            f"{tool} must be pinned with == so local and CI agree"
+        )
