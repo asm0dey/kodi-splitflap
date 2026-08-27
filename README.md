@@ -9,14 +9,40 @@ while its neighbour ticks once.
 
 ## Install
 
-Settings → Add-ons → Install from repository → Look and feel → Screensaver →
-Split-Flap Board.
+**[⬇ repository.splitflap-1.0.0.zip](https://asm0dey.github.io/kodi-splitflap/repo/repository.splitflap/repository.splitflap-1.0.0.zip)**
+— install this one file and everything else follows.
 
-Then Settings → Interface → Screensaver → Split-Flap Board.
+Settings → Add-ons → **Install from zip file** → pick that zip. Then
+Settings → Add-ons → **Install from repository** → Split-Flap Repository →
+Look and feel → Screensaver → **Split-Flap Board**.
 
-To install from a downloaded zip instead: Settings → Add-ons → Install from
-zip file, and pick the `screensaver.splitflap-<version>.zip` built by
-`tools/build_addon.sh` (see Development below).
+Finally Settings → Interface → Screensaver → **Split-Flap Board**.
+
+Installing the repository rather than the screensaver directly is worth the
+extra step: the screensaver and any glyph packs then update themselves through
+Kodi's normal add-on browser, which matters on a Fire TV or webOS box where
+there is no comfortable way to copy a file onto the device again.
+
+### Adding it as a source instead
+
+If you would rather Kodi fetch the repository zip itself — Settings → File
+manager → Add source:
+
+```
+https://asm0dey.github.io/kodi-splitflap/repo
+```
+
+Name it `splitflap`, then Install from zip file → splitflap →
+`repository.splitflap/`.
+
+### Just the screensaver
+
+Direct downloads, no updates:
+
+- **[screensaver.splitflap](https://asm0dey.github.io/kodi-splitflap/repo/screensaver.splitflap/)** — the screensaver
+- **[resource.images.splitflap.nimbus-ru](https://asm0dey.github.io/kodi-splitflap/repo/resource.images.splitflap.nimbus-ru/)** — Cyrillic glyph pack
+
+Or build one yourself with `tools/build_addon.sh` (see Development below).
 
 **Fire TV users:** Fire OS runs its own screensaver on its own timer. If
 Kodi's screensaver timeout is *longer* than Fire OS's, Amazon's photo

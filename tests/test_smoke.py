@@ -167,3 +167,26 @@ def test_lint_and_type_tools_are_pinned():
         assert re.search(rf'"{tool}==\d', dev.group(1)), (
             f"{tool} must be pinned with == so local and CI agree"
         )
+
+
+def test_readme_download_links_point_at_files_that_exist():
+    """A dead download link is this README's most user-visible failure.
+
+    The repository zip is linked by exact version, so bumping
+    repository.splitflap without rebuilding docs/repo would leave the
+    front-page install button pointing at nothing.
+    """
+    import re
+    readme = (_repo() / "README.md").read_text(encoding="utf-8")
+    base = "https://asm0dey.github.io/kodi-splitflap/repo/"
+    served = _repo() / "docs" / "repo"
+    missing = []
+    for url in re.findall(rf"{re.escape(base)}([^)\s]+)", readme):
+        target = served / url
+        # a bare directory link is a listing, not a file
+        if url.endswith("/"):
+            if not target.is_dir():
+                missing.append(url)
+        elif not target.is_file():
+            missing.append(url)
+    assert not missing, f"README links to files not in docs/repo: {missing}"
