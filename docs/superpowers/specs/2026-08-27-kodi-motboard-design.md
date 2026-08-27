@@ -48,7 +48,7 @@ Kodi shell.
 
 ```
 resources/lib/
-  layout.py      PURE  text -> screens: uppercase, wrap, centre, paginate
+  layout.py      PURE  one line -> one board: uppercase, wrap, centre, ellipsise
   template.py    PURE  {InfoLabel} substitution, --- screen splitting
   flap.py        PURE  animation state machine -> (tile, half, char) paint ops
   glyphs.py      PURE  glyph index: resolution order, codepoint naming
@@ -73,7 +73,7 @@ is why the animation is testable without a running Kodi.
 ### Data flow
 
 ```
-Source -> list[str] -> layout.screens() -> target grid
+Source -> list[str] -> layout.board() -> target grid
                                               |
                                     flap.retarget(target)
                                               |
@@ -348,13 +348,20 @@ setting), and re-reads live sources on each turn.
    hard-split
 3. centre each line horizontally
 4. size the block to the number of wrapped lines and centre it vertically
-5. paginate only if the wrapped text exceeds `max text rows`
+5. on overflow past `max text rows`, keep the first rows and **ellipsise**: the last
+   kept row is hard-filled to full width from the remaining text, and its final cell
+   is replaced with `…` (U+2026)
 6. pad with blank
 
-**One source line is one board.** Step 4 is why: the block grows to fit rather than
-being fixed at a row count, so a phrase never spills onto a second board just for being
-long. Step 5 is a fallback for pathological input past the cap, not the normal path —
-nothing in the layout requires the author to think about line lengths.
+**One source line is always one board.** There is no pagination — layout returns
+exactly one board per source line, never a sequence. The block grows to fit (step 4)
+so length alone never costs a second board, and genuine overflow truncates (step 5)
+rather than spilling.
+
+Step 5 hard-fills rather than reusing the wrapped line because a centred short final
+line would leave the `…` floating mid-row; filling to full width puts it in the last
+cell, where a board running out of space would put it. `…` is already in the bundled
+CP1252 extras, so it needs no new asset.
 
 Right-to-left scripts (Hebrew) get the line reversed. **Out of scope:** Arabic and
 Devanagari — a cell grid cannot render connected scripts, and no amount of glyph
@@ -385,7 +392,9 @@ Automated (`pytest` on Linux CI, no Kodi):
 
 - `layout` — wrap, centre, uppercase including accented, **case expansion (`ß` -> two
   cells) measured after wrapping**, RTL reverse, over-long word, **block grows to fit
-  and stays vertically centred at every height**, paginate only past `max text rows`
+  and stays vertically centred at every height**, **overflow ellipsises into the final
+  cell of a full-width last row**, and **one source line always yields exactly one
+  board**
 - `flap` — stride maths, step-count bounds, op ordering, stagger, **settled board emits
   zero ops**
 - `sources` — JSON/text/comment parsing, malformed input, cache fallback chain
