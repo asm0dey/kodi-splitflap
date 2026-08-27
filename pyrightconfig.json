@@ -6,6 +6,11 @@
   "pythonVersion": "3.11",
   "typeCheckingMode": "standard",
   "executionEnvironments": [
+    {
+      "root": "resources/lib/board.py",
+      "reportMissingImports": "none",
+      "extraPaths": ["."]
+    },
     { "root": ".", "extraPaths": ["."] }
   ]
 }
