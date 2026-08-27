@@ -27,7 +27,7 @@ def load():
 
 def test_file_exists_and_has_enough_phrases():
     phrases = load()
-    assert 20 <= len(phrases) <= 40
+    assert 90 <= len(phrases) <= 110
 
 
 def test_every_phrase_fits_at_default_geometry():
