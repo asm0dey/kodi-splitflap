@@ -36,6 +36,16 @@ class Drum:
         """
         return self._index.get(ch, 0)
 
+    def contains(self, ch: str) -> bool:
+        """Whether `ch` is a character this drum can flap to.
+
+        Callers that hand this drum a TARGET character (as opposed to a
+        currently-displayed one -- see `_pos` above) must check this first:
+        `distance`/`sequence` require the target to be on the drum and raise
+        otherwise.
+        """
+        return ch in self._index
+
     def distance(self, cur: str, target: str) -> int:
         """Steps forward from cur to target, wrapping. Never negative."""
         n = len(self.chars)

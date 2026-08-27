@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import NamedTuple
 
-from .charset import BLANK
+from .charset import BLANK, TOFU
 from .drum import MAX_STEPS, Drum
 
 STEP_MS = 200          # real hardware runs at five flaps per second
@@ -90,9 +90,17 @@ class FlapMachine:
                 raise ValueError(
                     f"row {r} has {len(row)} cells, expected {self._cols}"
                 )
-            for c, target in enumerate(row):
+            for c, raw_target in enumerate(row):
                 idx = r * self._cols + c
                 cell = self._cells[idx]
+                # A target absent from this drum (e.g. a glyph the source
+                # text contains but the active charset/pack does not cover)
+                # would otherwise raise KeyError deep in Drum.distance.
+                # Tofu is itself always on the drum (glyphs.GlyphIndex
+                # guarantees the tofu glyph is bundled), so substituting it
+                # here is the target-side counterpart to `Drum._pos`
+                # treating an unknown CURRENT character as blank.
+                target = raw_target if self._drum.contains(raw_target) else TOFU
                 # cell.char only updates when the BOTTOM half lands. In the
                 # hinge state (phase 1: top landed, bottom still pending --
                 # the whole point of the animation) the character actually

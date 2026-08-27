@@ -117,6 +117,15 @@ def test_unknown_target_raises():
         d.sequence("A", "Ж")
 
 
+def test_contains_reports_drum_membership():
+    """FlapMachine.retarget checks this before treating a character as a
+    valid target -- see test_flap.py's off-drum-target seam test."""
+    d = Drum("AB ")
+    assert d.contains("A")
+    assert d.contains(BLANK)
+    assert not d.contains("Ж")
+
+
 def test_short_distances_are_contiguous_not_sampled():
     """Under the cap, every intermediate character is shown in order."""
     d = Drum("ABCDEFGHIJ ")

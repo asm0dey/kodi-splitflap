@@ -1,3 +1,5 @@
+from resources.lib import layout
+from resources.lib.charset import TOFU, bundled_charset
 from resources.lib.drum import Drum
 from resources.lib.flap import STEP_MS, FlapMachine
 
@@ -140,3 +142,27 @@ def test_grid_shape_mismatch_raises():
         pass
     else:
         raise AssertionError("expected ValueError on wrong-width grid")
+
+
+def test_off_charset_text_renders_as_tofu_instead_of_crashing():
+    """Real seam: layout.build -> FlapMachine.retarget -> tick.
+
+    A phrases file, a localised Kodi infolabel, or a now-playing title can
+    contain a character the active drum doesn't carry (nothing upstream of
+    the drum filters to its charset). That must paint tofu, never raise --
+    a unit test against Drum alone would not exercise the module boundary
+    where this actually broke.
+    """
+    board = layout.build(["Облачно"], (), rows=3, cols=10)
+    drum = Drum(bundled_charset())
+    m = FlapMachine(drum, rows=3, cols=10, col_delay_ms=0, row_delay_ms=0,
+                    jitter_ms=0)
+
+    m.retarget(board.grid, now_ms=0)   # must not raise KeyError
+    ops = drain(m)
+
+    assert any(op.char == TOFU for op in ops), (
+        "expected an off-drum character to be painted as tofu"
+    )
+    assert m.settled
+    assert TOFU in "".join(m.current_grid())
