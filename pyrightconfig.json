@@ -1,0 +1,8 @@
+{
+  "include": ["resources", "tools", "tests"],
+  "extraPaths": ["."],
+  "pythonVersion": "3.11",
+  "executionEnvironments": [
+    { "root": ".", "extraPaths": ["."] }
+  ]
+}
