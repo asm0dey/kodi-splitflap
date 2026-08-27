@@ -49,12 +49,19 @@ def compute(rows: int, skin_w: int = SKIN_W, skin_h: int = SKIN_H, margin_pct: f
     tile_h = int(tile_w / CELL_ASPECT)
 
     # BOARD_ASPECT exceeds the frame aspect, so this normally has slack. Clamp
-    # anyway: a caller passing an extreme margin must not overflow the frame.
+    # anyway: a non-default skin aspect can force the height limit lower than width.
     margin_y = int(skin_h * margin_pct)
     max_tile_h = int((skin_h - 2 * margin_y - (rows - 1) * gap) / rows)
     if tile_h > max_tile_h:
         tile_h = max_tile_h
         tile_w = int(tile_h * CELL_ASPECT)
+
+    if tile_w <= 0 or tile_h <= 0:
+        raise ValueError(
+            f"cannot compute geometry with rows={rows}, margin_pct={margin_pct}: "
+            f"tile dimensions degenerate to {tile_w}x{tile_h}. "
+            f"Reduce rows or margin_pct."
+        )
 
     width = cols * tile_w + (cols - 1) * gap
     height = rows * tile_h + (rows - 1) * gap

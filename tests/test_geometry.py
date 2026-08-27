@@ -1,3 +1,5 @@
+import pytest
+
 from resources.lib.geometry import BOARD_ASPECT, CELL_ASPECT, compute
 
 
@@ -57,3 +59,13 @@ def test_adjacent_cells_are_a_pitch_apart():
     a = g.half_rect(0, 0, "top")
     b = g.half_rect(0, 1, "top")
     assert b[0] - a[0] == g.tile_w + g.gap
+
+
+def test_too_many_rows_is_rejected_rather_than_returning_zero_tiles():
+    with pytest.raises(ValueError):
+        compute(rows=73)
+
+
+def test_absurd_margin_is_rejected_rather_than_returning_negative_tiles():
+    with pytest.raises(ValueError):
+        compute(rows=6, margin_pct=0.6)
