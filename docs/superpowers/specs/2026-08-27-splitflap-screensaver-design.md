@@ -197,6 +197,16 @@ step k:  top    <- sequence[k+1]     (card face swings down)
 
 The transient mismatch between halves *is* the hinge effect.
 
+**Timing.** One half-step per frame at `flap_fps`, so a step is two frames — 100ms at
+the default 20fps. A single-step flap (`'1'` -> `'2'`, adjacent in the drum) takes 100ms;
+the `MAX_STEPS` ceiling bounds the worst case at **1.2s**.
+
+**Forward-only motion has a visible consequence.** The drum cannot reverse, so a target
+whose codepoint is *below* the current one wraps the whole drum. `'9'` -> `'0'` is the
+common case: U+0030 sits below U+0039, so a clock's minutes digit spins a full
+revolution each time it rolls over while the tens digit ticks a single step. This
+matches real hardware, where a physical drum has the same constraint.
+
 ### Transitions
 
 **Direct retarget** — no clear-to-blank between boards. Cells whose character is
