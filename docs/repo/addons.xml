@@ -27,11 +27,12 @@
     <description lang="en_GB">Split-Flap - Nimbus, Latin + Cyrillic</description>
     <platform>all</platform>
   </extension>
-</addon><addon id="screensaver.splitflap" name="Split-Flap Board" version="0.1.7" provider-name="finkel">
+</addon><addon id="screensaver.splitflap" name="Split-Flap Board" version="0.1.10" provider-name="finkel">
   <requires>
     <import addon="xbmc.python" version="3.0.0" />
   </requires>
   <extension point="xbmc.ui.screensaver" library="default.py" />
+  <extension point="xbmc.python.script" library="chooser.py" />
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">A mechanical split-flap departure board</summary>
     <description lang="en_GB">Renders a Solari-style split-flap board showing phrases, the time, and the weather. Characters flap through the drum exactly as the hardware does.</description>
@@ -40,6 +41,20 @@
     <assets>
       <icon>icon.png</icon>
       <fanart>fanart.jpg</fanart>
+    </assets>
+  </extension>
+</addon><addon id="script.splitflap.source.recentlyadded" name="Split-Flap — Recently Added" version="0.1.0" provider-name="finkel">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0" />
+  </requires>
+  <extension point="xbmc.python.module" library="." />
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Latest library additions for the Split-Flap Board</summary>
+    <description lang="en_GB">Supplies the Split-Flap Board screensaver with the newest additions to Kodi's video library — movies and episodes merged newest-first, one per board. Set the screensaver's Show setting to Add-on to use it.</description>
+    <license>GPL-2.0-or-later</license>
+    <platform>all</platform>
+    <assets>
+      <icon>icon.png</icon>
     </assets>
   </extension>
 </addon></addons>
