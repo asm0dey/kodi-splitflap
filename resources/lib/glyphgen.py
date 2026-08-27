@@ -13,7 +13,6 @@ from collections.abc import Iterable
 CARD_VALUE = 24        # near-black card, so a tint barely moves it
 LETTER_VALUE = 232     # light letterform, so a tint colours it
 HINGE_VALUE = 8         # the seam between halves
-CORNER_RADIUS = 6
 
 
 def glyph_filename(ch: str, half: str) -> str:
@@ -32,9 +31,10 @@ def render_glyphs(
 
     chars = list(chars)
     full_h = half_h * 2
-    # Fit the capital height to about 55% of the full card, then shrink
-    # further if the widest character in this set would overflow the
-    # card width (e.g. W, M, @, em dash are all wider than they are tall).
+    # Target a capital height of about 55% of the full card, then shrink
+    # further if any character in this set would overflow the card width
+    # at that size (W, M, @, and the em dash are all wider than their own
+    # cap height, so the final size can land well under the 55% target).
     size = _fit_font_size(font_path, full_h, half_w, chars)
     font = ImageFont.truetype(font_path, size)
 
