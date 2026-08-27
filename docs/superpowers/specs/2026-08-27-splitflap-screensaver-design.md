@@ -99,7 +99,11 @@ happens to import.
 <extension point="xbmc.ui.screensaver" library="default.py"/>
 ```
 
-Requires `xbmc.python` 3.0.0. Python 3.8+ syntax (Kodi 19 onward); Kodi 21+ primary.
+Requires `xbmc.python` 3.0.0. **Python 3.11 is the floor** — Kodi 21 (Omega) ships it,
+and official-repo submission happens on per-Kodi-version branches, so Omega and Piers
+are the targets. Kodi 19/20 (Python 3.8) are deliberately not supported: keeping them
+would mean `typing.Tuple`/`List`/`Dict` throughout, deprecated since 3.9, to serve
+versions this addon does not target.
 
 ## Geometry
 

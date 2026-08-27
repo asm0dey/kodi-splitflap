@@ -4,8 +4,6 @@ Capitals-only extended ASCII. Defined as an explicit codepoint list rather
 than a range minus guesswork, so the uppercase-closure invariant in the
 tests can be trusted.
 """
-from typing import Tuple
-
 BLANK = " "
 TOFU = "□"
 
@@ -40,8 +38,7 @@ _CLOSURE = ("Μ",)
 _SPECIAL = (TOFU,)
 
 
-def bundled_charset():
-    # type: () -> Tuple[str, ...]
+def bundled_charset() -> tuple[str, ...]:
     seen = []
     for group in (_ASCII, _LATIN1, _TYPOGRAPHIC, _CLOSURE, _SPECIAL):
         for ch in group:

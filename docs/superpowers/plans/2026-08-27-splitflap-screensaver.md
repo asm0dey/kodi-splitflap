@@ -6,7 +6,7 @@
 
 **Architecture:** A pure-Python core (geometry, layout, drum, flap state machine, sources) with no `xbmc` imports, unit-tested on Linux CI, behind a thin Kodi shell that only creates controls and calls `setImage()`. Each board cell is a tile of two stacked `ControlImage` halves; characters are pre-rendered greyscale PNGs tinted at runtime with `colordiffuse`.
 
-**Tech Stack:** Python 3.8+, Kodi 21+ (`xbmc.python` 3.0.0), pytest, Pillow (build-time only), Nimbus Sans.
+**Tech Stack:** Python 3.11+, Kodi 21+ (`xbmc.python` 3.0.0), pytest, Pillow (build-time only), Nimbus Sans.
 
 **Spec:** `docs/superpowers/specs/2026-08-27-splitflap-screensaver-design.md`
 
@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- **Python 3.8 syntax.** Kodi 19 ships 3.8. Use `typing.Optional`, `typing.Tuple`, `typing.List`, `typing.Dict` — never `X | None` or builtin generics.
+- **Python 3.11 syntax.** Kodi 21 (Omega) ships 3.11 and is the floor; official-repo submission is per-Kodi-version branches, and Omega/Piers are both 3.11. Use builtin generics (`tuple[str, ...]`, `list[str]`, `dict[str, str]`) and `X | None` — never `typing.Tuple`/`List`/`Dict`/`Optional`, which are deprecated since 3.9. Prefer real annotations over `# type:` comments.
 - **Zero runtime dependencies.** Stdlib only. `urllib.request` for fetching. Pillow is imported only in build tools and behind a guarded `try` at runtime.
 - **No `xbmc` import outside the Kodi shell.** `board.py`, `liveinfo.py`, `discovery.py`, `default.py` may import Kodi. Nothing else may, ever — CI has no Kodi.
 - **Addon id:** `screensaver.splitflap`. Display name "Split-Flap Board". Glyph packs: `resource.images.splitflap.*`.

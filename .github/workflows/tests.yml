@@ -2,13 +2,12 @@ name: tests
 on: [push, pull_request]
 jobs:
   test:
-    # ubuntu-22.04, not latest: Python 3.8 is EOL and 24.04 images no longer
-    # carry it. 3.8 is Kodi 19's interpreter and is the syntax floor; 3.11 is
-    # what Kodi 21 actually ships, so both are tested.
-    runs-on: ubuntu-22.04
+    # 3.11 is Kodi 21 (Omega)'s interpreter and the syntax floor; 3.13 guards
+    # against breakage on newer interpreters. Kodi 19/20 (3.8) are not targeted.
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.11"]
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
