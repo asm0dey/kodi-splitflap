@@ -48,7 +48,7 @@ Install the same zip. Fire OS runs its own screensaver, so first:
 
 | # | Check | Expected | Result |
 |---|---|---|---|
-| B1 | Control budget | Board builds without a visible stall. **Spike item 2** — this is the A53-silicon question that cannot be answered from a desktop | |
+| B1 | Control budget | Board builds without a visible stall. **Spike item 2** — this is the A53-silicon question that cannot be answered from a desktop | **PASS** — runs smoothly on a Fire TV (2026-08-27). Closes the project's longest-standing unknown: 264 controls with ~40 setImage calls per 200ms step are comfortable on A53. No fallback to fewer rows needed. |
 | B2 | Idle cost | With a settled board, `adb shell top -m 5` shows Kodi essentially idle. A settled board emits zero paint ops by design; if CPU is busy, that claim is wrong | |
 | B3 | Flap feel | Watch a full-drum wrap (`9`→`0`) from couch distance. Does `MAX_STEPS = 12` at 200ms/step look right, or should it be higher? **Spike item 0 — a judgement, not a measurement** | |
 | B4 | Transition smoothness | During a board change, no stutter. Glyph resolution is memoised; if it stutters, that memoisation is not working as intended | |
