@@ -174,6 +174,17 @@ glyph set and therefore the drum.
 A character absent from the current drum — after a mid-session pack change — is treated
 as blank and flaps from there.
 
+**Our drum is longer than any real board's.** Solari modules carried 40 flaps (the
+original Liege board) up to 64 (Changi T2); bundling extended ASCII gives us ~145 in one
+cycle. Hardware never mixed accented capitals into the letter drum.
+
+This makes stride sampling visible rather than cosmetic: a real 40-flap revolution shows
+40 contiguous characters, while 12 steps across 145 shows every ~12th, which reads as
+scrambling rather than a drum spinning through the alphabet. `MAX_STEPS` and step
+duration are therefore **tuning constants, not derived values** — 12 steps at 100ms
+reads fast and scrambly, ~20 at 50ms reads closer to a real spin for the same wall time.
+Settle them on a TV during the spike.
+
 ### Flap sequence
 
 Constant step duration, no easing. Steps sampled at a fixed stride across the drum,
@@ -520,6 +531,9 @@ Manual only (platform-bound, cannot run in CI): window construction, control cou
 
 Roughly one hour. Any outcome moves a constant; none invalidates the structure.
 
+0. **Flap feel** — watch a full-drum wrap (`'9'` -> `'0'`) on a TV and settle
+   `MAX_STEPS` and step duration. Not a correctness question; the only one here that
+   cannot be answered from a desk.
 1. **Exit contract** — which of `onAction`, `System.ScreenSaverActive`, or
    `abortRequested` actually fires for a Python screensaver, and in what order.
 2. **Control budget** — 264 controls on a Fire TV Stick 4K: window init time, memory,
