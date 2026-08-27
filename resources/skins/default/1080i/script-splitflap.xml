@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window type="dialog">
+  <defaultcontrol>-1</defaultcontrol>
+  <animation effect="fade" time="400">WindowOpen</animation>
+  <animation effect="fade" time="400">WindowClose</animation>
+  <controls>
+    <control type="image" id="1">
+      <posx>0</posx><posy>0</posy><width>1920</width><height>1080</height>
+      <texture>black.png</texture>
+      <colordiffuse>FF000000</colordiffuse>
+    </control>
+  </controls>
+</window>
