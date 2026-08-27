@@ -43,6 +43,9 @@ class BoardView:
         self._accent = self._resolve_colour("accent", accent_colour)
         self._halves: dict[tuple[int, str], xbmcgui.ControlImage] = {}
         self._accent_cells: frozenset[int] = frozenset()
+        # What character each half last displayed. Needed because an accent
+        # change repaints a cell without a flap op to tell it what to show.
+        self._face: dict[tuple[int, str], str] = {}
         # None = not yet probed. True/False memoise the result of the first
         # attempt so later builds don't pay for a repeated failing kwarg call.
         self._color_diffuse_kwarg: bool | None = None
@@ -70,6 +73,8 @@ class BoardView:
         # otherwise a tile accented by a previous board would stay tinted
         # under the new one until set_accents() next disagreed with it.
         self._accent_cells = frozenset()
+        # Controls are freshly created blank, so the face cache must agree.
+        self._face = {}
         blank_top = self._index.path(BLANK, "top")
         blank_bottom = self._index.path(BLANK, "bottom")
         # Typed as the base Control: addControls takes List[Control], and
@@ -114,44 +119,32 @@ class BoardView:
         return control
 
     def set_accents(self, cells: Iterable[tuple[int, int]]) -> None:
-        """Recolour accent tiles to the accent colour, everything else to letter.
+        """Record which cells are accented and repaint them.
 
-        Called once per board (a fresh grid), never per animation frame.
-        Takes (row, col) pairs -- unlike PaintOp.cell, which is a row-major
-        index -- because that's how accents are recorded upstream; the
-        conversion to row-major happens here, once, at the boundary, via
-        the same Geometry.cell_index() build() uses so the two can't drift.
+        Only records: `paint()` is the single authority on what texture a
+        control carries. An earlier version wrote the accent texture here
+        directly, which the very next flap op overwrote with the ordinary
+        dark blank glyph -- silently restoring the invisible-accent bug this
+        light card exists to fix. Two writers to one control is the defect;
+        one writer plus recorded state is the fix.
         """
-        wanted = frozenset(self._geo.cell_index(row, col) for row, col in cells)
-        # An accent tile swaps TEXTURE as well as tint. colorDiffuse
-        # multiplies, so tinting the near-black card can only darken it --
-        # the accent card is deliberately light so the tint has something to
-        # multiply into. Recolouring alone produced RGB(4, 8, 21): black.
-        for cell in self._accent_cells - wanted:
-            self._restore(cell)
-        for cell in wanted - self._accent_cells:
-            self._make_accent(cell)
+        wanted = frozenset(
+            self._geo.cell_index(row, col) for row, col in cells
+        )
+        changed = (wanted ^ self._accent_cells)
         self._accent_cells = wanted
+        for cell in changed:
+            self._repaint(cell)
 
-    def _make_accent(self, cell: int) -> None:
+    def _repaint(self, cell: int) -> None:
+        """Re-apply both halves of one cell under the current accent state."""
         for half in ("top", "bottom"):
             control = self._halves.get((cell, half))
-            if control is not None:
-                control.setImage(self._accent_texture(half), useCache=True)
-                control.setColorDiffuse(self._accent)
-
-    def _restore(self, cell: int) -> None:
-        """Return an ex-accent tile to a blank letter-coloured card.
-
-        The next paint op overwrites the texture anyway; this matters only
-        for a cell that stays blank, which would otherwise keep the light
-        accent card and read as a bright tile with no reason to be one.
-        """
-        for half in ("top", "bottom"):
-            control = self._halves.get((cell, half))
-            if control is not None:
-                control.setImage(self._index.path(BLANK, half), useCache=True)
-                control.setColorDiffuse(self._letter)
+            if control is None:
+                continue
+            control.setImage(self._texture(cell, half, self._face.get(
+                (cell, half), BLANK)), useCache=True)
+            control.setColorDiffuse(self._colour(cell))
 
     def _accent_texture(self, half: str) -> str:
         """The light accent card, resolved through the glyph index."""
@@ -164,9 +157,25 @@ class BoardView:
                 control.setColorDiffuse(colour)
 
     def paint(self, ops: Iterable[PaintOp]) -> None:
-        """Apply one batch of flap paint ops to their matching controls."""
+        """Apply one batch of flap paint ops to their matching controls.
+
+        The single writer of control textures. An accented cell takes the
+        light accent card whatever character the flap machine asked for --
+        an accent tile is a solid coloured face, not a tinted letter.
+        """
         for op in ops:
             control = self._halves.get((op.cell, op.half))
             if control is None:
                 continue
-            control.setImage(self._index.path(op.char, op.half), useCache=True)
+            self._face[(op.cell, op.half)] = op.char
+            control.setImage(self._texture(op.cell, op.half, op.char),
+                             useCache=True)
+            control.setColorDiffuse(self._colour(op.cell))
+
+    def _texture(self, cell: int, half: str, char: str) -> str:
+        if cell in self._accent_cells:
+            return self._index.accent_path(half)
+        return self._index.path(char, half)
+
+    def _colour(self, cell: int) -> str:
+        return self._accent if cell in self._accent_cells else self._letter

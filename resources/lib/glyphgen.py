@@ -33,6 +33,18 @@ FLAP_SHADOW_ROWS = 18   # how far that shadow reaches down
 # multiply into: 235 x #2B5CE6 is RGB(39, 84, 211), a solid blue tile like the
 # one on a real board.
 ACCENT_CARD_VALUE = 235
+
+# The hardware that holds a flap on its axle, copied from a photograph of a
+# real board: a retaining notch cut into the top edge, and lugs along both
+# side edges clustered around the hinge. Without them the tiles read as
+# free-floating rectangles -- there is nothing saying they are mounted on
+# anything.
+NOTCH_VALUE = 6         # cut into the card, so darker than the face
+NOTCH_W_FRAC = 0.10     # of the tile width
+NOTCH_H_FRAC = 0.15     # of one half's height
+LUG_VALUE = 10
+LUG_W_FRAC = 0.055
+LUG_H_FRAC = 0.085
 ACCENT_NAME = "accent"
 
 
@@ -147,7 +159,33 @@ def _shaded_card(half_w: int, half_h: int, full_h: int) -> "Image":
     for half_top in (0, half_h):
         draw.line([(0, half_top), (half_w, half_top)], fill=CARD_VALUE + EDGE_LIGHT)
 
+    _draw_mounting(draw, half_w, half_h, full_h, CARD_VALUE)
     return card
+
+
+def _draw_mounting(draw, half_w: int, half_h: int, full_h: int,
+                   card_value: int) -> None:
+    """The notch and side lugs that mount a flap on its axle.
+
+    Drawn on both halves so a tile reads as hardware from either face, and
+    positioned around the hinge because that is where a real flap is held.
+    """
+    notch_w = max(2, int(half_w * NOTCH_W_FRAC))
+    notch_h = max(2, int(half_h * NOTCH_H_FRAC))
+    x0 = (half_w - notch_w) // 2
+    for half_top in (0, half_h):
+        draw.rectangle([x0, half_top, x0 + notch_w, half_top + notch_h],
+                       fill=NOTCH_VALUE)
+
+    lug_w = max(1, int(half_w * LUG_W_FRAC))
+    lug_h = max(2, int(half_h * LUG_H_FRAC))
+    # Two lugs per side per half, sitting either side of the hinge.
+    for cy in (half_h - int(half_h * 0.34), half_h - int(half_h * 0.10),
+               half_h + int(half_h * 0.10), half_h + int(half_h * 0.34)):
+        top = max(0, min(full_h - lug_h, cy - lug_h // 2))
+        draw.rectangle([0, top, lug_w, top + lug_h], fill=LUG_VALUE)
+        draw.rectangle([half_w - lug_w, top, half_w, top + lug_h],
+                       fill=LUG_VALUE)
 
 
 def _fit_font_size(font_path: str, full_h: int, half_w: int,
