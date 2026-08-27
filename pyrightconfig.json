@@ -1,16 +1,22 @@
 {
-  "include": ["resources", "tools", "tests"],
-  "extraPaths": ["."],
+  "include": [
+    "resources",
+    "tools",
+    "tests"
+  ],
+  "extraPaths": [
+    "."
+  ],
   "venvPath": ".",
   "venv": ".venv",
   "pythonVersion": "3.11",
   "typeCheckingMode": "standard",
   "executionEnvironments": [
     {
-      "root": "resources/lib/board.py",
-      "reportMissingImports": "none",
-      "extraPaths": ["."]
-    },
-    { "root": ".", "extraPaths": ["."] }
+      "root": ".",
+      "extraPaths": [
+        "."
+      ]
+    }
   ]
 }

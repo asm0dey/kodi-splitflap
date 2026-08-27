@@ -51,7 +51,9 @@ class BoardView:
         """Create one ControlImage per half of every cell, blank-faced."""
         blank_top = self._index.path(BLANK, "top")
         blank_bottom = self._index.path(BLANK, "bottom")
-        controls: list[xbmcgui.ControlImage] = []
+        # Typed as the base Control: addControls takes List[Control], and
+        # list is invariant, so the narrower element type is rejected.
+        controls: list[xbmcgui.Control] = []
         for row in range(self._geo.rows):
             for col in range(self._geo.cols):
                 cell = row * self._geo.cols + col
