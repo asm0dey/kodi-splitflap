@@ -108,11 +108,15 @@ Vertical margin is then recomputed to centre the grid.
 
 ### Controls
 
+The text block **grows to fit its content** — a short phrase occupies one row, a long
+one four, always centred vertically. So every cell within the growable band needs two
+halves, and the band is capped by `max text rows` to bound the control count:
+
 ```
 cols x rows = 22 x 15 = 330 cells
-  text rows (default 3, centred)   66 cells x 2 halves = 132 ControlImage
-  static rows (the other 12)      264 cells x 1 blank  = 264 ControlImage
-                                                 total  396 controls
+  growable band (max text rows = 5)  110 cells x 2 halves = 220 ControlImage
+  static rows (the other 10)         220 cells x 1 blank  = 220 ControlImage
+                                                    total  440 controls
 ```
 
 Static cells get a single full-tile blank image — they never flap, so they need no
@@ -280,7 +284,7 @@ class Source(Protocol):
 
 | source | impl | notes |
 |---|---|---|
-| `textfile` | pure | one phrase per line, `#` comments, blank lines dropped, mtime reload |
+| `textfile` | pure | free text, **one line = one board**, `#` comments, blank lines dropped, mtime reload |
 | `remote` | pure parse, threaded fetch | `urllib` with timeout. Plain text or JSON (`[...]` / `{"phrases":[...]}`). Caches to `addon_data` with TTL. Fail -> cache -> bundled defaults. Never on the render thread |
 | `infolabel` | pure substitution, thin `xbmc.getInfoLabel` getter | template-driven; see below |
 
@@ -332,8 +336,8 @@ It renders as the reference does: `SYDNEY` / `17° RAIN`.
 
 Now-playing is music-only in practice — Kodi does not screensave over video.
 
-`rotator.py` round-robins enabled sources, `dwell` seconds per screen, re-reading live
-sources on each turn.
+`rotator.py` round-robins enabled sources, holding each board for `dwell` seconds (a
+setting), and re-reads live sources on each turn.
 
 ## Layout
 
@@ -343,9 +347,14 @@ sources on each turn.
 2. greedy word-wrap to `cols`, on the already-uppercased text; over-long words
    hard-split
 3. centre each line horizontally
-4. centre the block vertically into the text rows
-5. paginate to consecutive screens on overflow
+4. size the block to the number of wrapped lines and centre it vertically
+5. paginate only if the wrapped text exceeds `max text rows`
 6. pad with blank
+
+**One source line is one board.** Step 4 is why: the block grows to fit rather than
+being fixed at a row count, so a phrase never spills onto a second board just for being
+long. Step 5 is a fallback for pathological input past the cap, not the normal path —
+nothing in the layout requires the author to think about line lengths.
 
 Right-to-left scripts (Hebrew) get the line reversed. **Out of scope:** Arabic and
 Devanagari — a cell grid cannot render connected scripts, and no amount of glyph
@@ -354,9 +363,11 @@ generation fixes it. Real split-flap hardware has the same limitation.
 ## Settings
 
 ```
-Board     columns (22) | text rows (3) | flap fps (20) | max steps (12) | accent colour
+Board     columns (22) | max text rows (5) | flap fps (20) | max steps (12) |
+          accent colour
+Timing    dwell seconds per board
 Glyphs    glyph pack (none)
-Sources   per-source enable | file path | remote URL | refresh mins | dwell secs | order
+Sources   per-source enable | file path | remote URL | refresh mins | order
 Info      time | date | weather | now playing (checkboxes) | combine (one board /
           separate boards)
 Advanced  template file path (blank = compose from the checkboxes)
@@ -372,8 +383,9 @@ without touching a filesystem. Glyph packs ship through the same repo.
 
 Automated (`pytest` on Linux CI, no Kodi):
 
-- `layout` — wrap, centre, paginate, uppercase including accented, **case expansion
-  (`ß` -> two cells) measured after wrapping**, RTL reverse, over-long word
+- `layout` — wrap, centre, uppercase including accented, **case expansion (`ß` -> two
+  cells) measured after wrapping**, RTL reverse, over-long word, **block grows to fit
+  and stays vertically centred at every height**, paginate only past `max text rows`
 - `flap` — stride maths, step-count bounds, op ordering, stagger, **settled board emits
   zero ops**
 - `sources` — JSON/text/comment parsing, malformed input, cache fallback chain
@@ -401,8 +413,9 @@ structure.
 
 1. **Exit contract** — which of `onAction` / `System.ScreenSaverActive` /
    `abortRequested` actually fires for a Python screensaver, and in what order.
-2. **Control budget** — 396 controls on a Fire TV Stick 4K: window init time, memory,
-   `setImage` throughput at 20fps. Fallback if it bites: smaller default grid.
+2. **Control budget** — 440 controls on a Fire TV Stick 4K: window init time, memory,
+   `setImage` throughput at 20fps. Fallback if it bites: smaller default grid, or a
+   lower `max text rows` cap.
 3. **`resource://` resolution** — reading glyph files from an installed
    `kodi.resource.images` pack from addon Python.
 
