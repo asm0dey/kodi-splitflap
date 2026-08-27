@@ -23,18 +23,14 @@ _Avoid_: card, flap (as a noun), cell
 The top or bottom portion of a tile. The two halves can display different characters
 mid-flap, which is what produces the hinge effect.
 
-**Band**:
-The fixed region of rows in which tiles are allocated. Its height is a configured
-maximum and never varies at runtime.
-_Avoid_: text rows, live rows
-
 **Block**:
-The wrapped text sitting inside the band. Its height varies with content and it is
-always centred within the band.
-_Avoid_: text block, message
+The wrapped text occupying part of the board. Its height varies with content and it is
+always centred in the grid.
+_Avoid_: text block, message, band
 
 **Accent cell**:
-A cell tinted a distinct colour to draw the eye, as on the reference board.
+A cell tinted a distinct colour to draw the eye. Which cells are accented is decided by
+the source, not by the board.
 
 ## Characters and rendering
 
@@ -64,12 +60,18 @@ One tile's animated transition from its current character to a target character.
 
 **Source**:
 An origin of board content — a phrase file, a remote list, or Kodi's own information
-labels.
+labels. Exactly one is active at a time.
+_Avoid_: contributor, provider, feed
 
 **Phrase**:
 One line of text from a source, which becomes exactly one board.
 _Avoid_: quote, message, item
 
-**Dwell**:
-How long a settled board is held before the next one is targeted.
-_Avoid_: delay, interval, timeout
+**Hold**:
+How long a settled board is held before the next one is targeted. Counted from the
+moment the flap finishes.
+_Avoid_: dwell, delay, interval, timeout
+
+**Contributor addon**:
+A separate addon supplying a source, so third parties can provide content without
+touching this addon's rendering.
