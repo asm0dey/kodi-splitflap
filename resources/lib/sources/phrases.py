@@ -7,15 +7,15 @@ Ordering is shuffled without repeat until the pool is exhausted. Plain
 random visibly repeats within a few boards and reads as a bug.
 """
 import random
-from typing import List, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from .base import Content, Source
 
 AUTHOR_SEP = "\\n"
 
 
-def parse_phrases(text):
-    # type: (str) -> List[str]
+def parse_phrases(text: str) -> list[str]:
     out = []
     for raw in text.splitlines():
         line = raw.strip()
@@ -25,22 +25,23 @@ def parse_phrases(text):
     return out
 
 
-def split_author(phrase):
-    # type: (str) -> List[str]
+def split_author(phrase: str) -> list[str]:
     return [part.strip() for part in phrase.split(AUTHOR_SEP)]
 
 
 class PhraseSource(Source):
     id = "phrases"
 
-    def __init__(self, pools, rng=None):
-        # type: (Sequence[Sequence[str]], random.Random) -> None
+    def __init__(
+        self,
+        pools: Sequence[Sequence[str]],
+        rng: random.Random | None = None,
+    ) -> None:
         self._pool = [p for pool in pools for p in pool]
         self._rng = rng or random.Random()
-        self._order = []       # type: List[int]
+        self._order: list[int] = []
 
-    def _advance(self):
-        # type: () -> str
+    def _advance(self) -> str:
         if not self._pool:
             return ""
         if not self._order:
@@ -48,13 +49,15 @@ class PhraseSource(Source):
             self._rng.shuffle(self._order)
         return self._pool[self._order.pop()]
 
-    def next(self):
-        # type: () -> Content
+    def next(self) -> Content:
         phrase = self._advance()
         if not phrase:
             return Content(lines=(), accents=(), refresh_in=None)
         lines = split_author(phrase)
-        accents = [{"corner": "top-left"}, {"corner": "top-right"}]
+        accents: list[dict[str, Any]] = [
+            {"corner": "top-left"},
+            {"corner": "top-right"},
+        ]
         if len(lines) > 1:
             accents.append({"before_line": len(lines) - 1})
         return Content(lines=lines, accents=accents, refresh_in=None)
