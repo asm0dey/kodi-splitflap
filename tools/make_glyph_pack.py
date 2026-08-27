@@ -148,10 +148,10 @@ def _resolve_chars(args: argparse.Namespace) -> str:
         with open(args.chars_from, encoding="utf-8") as handle:
             parts.append(handle.read())
 
-    # str.upper() expands multi-codepoint forms (e.g. "ß" -> "SS") across
-    # the whole string, so upper-casing the combined text before
-    # deduplicating keeps those expansions intact rather than upper-casing
-    # one character at a time and losing the second half of an expansion.
+    # str.upper() can expand one character into several (e.g. "SS" for
+    # "ß"); upper-casing the combined text before splitting into
+    # characters means every expanded character reaches the dedup loop
+    # below like any other character, with no separate case to handle.
     combined = "".join(parts).upper()
     seen: set[str] = set()
     chars: list[str] = []
