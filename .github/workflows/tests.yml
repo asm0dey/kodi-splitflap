@@ -15,6 +15,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
       - run: python -m ruff check .
+      - run: python -m pyright
       # Tests that read bundled data skip in a copied tree (a mutation
       # runner). In CI they must all run -- a skip here means the data is
       # genuinely missing, which is a packaging regression.
@@ -31,7 +32,7 @@ jobs:
           matches=$(grep -rn "^import xbmc\|^from xbmc" \
             resources/lib/layout.py resources/lib/flap.py resources/lib/drum.py \
             resources/lib/geometry.py resources/lib/glyphs.py resources/lib/charset.py \
-            resources/lib/compose.py resources/lib/rotator.py \
+            resources/lib/compose.py resources/lib/rotator.py resources/lib/colour.py \
             resources/lib/glyphgen.py resources/lib/sources/base.py resources/lib/sources/phrases.py \
             resources/lib/sources/remote.py \
             2>/dev/null || true)
