@@ -5,7 +5,7 @@ import os
 import random
 import threading
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import xbmc
 import xbmcgui
@@ -23,6 +23,13 @@ from resources.lib.rotator import Rotator
 from resources.lib.sources.liveinfo import LiveInfoSource
 from resources.lib.sources.phrases import PhraseSource, parse_phrases
 from resources.lib.sources.remote import RemoteCache, http_get
+
+if TYPE_CHECKING:
+    # Only for the _build_source return annotation below -- the real import
+    # of discovery.py is lazy (inside _build_source), since it touches Kodi
+    # only through function-body imports and has no reason to load when the
+    # source is liveinfo or phrases.
+    from resources.lib.sources.discovery import _SourceLike
 
 FRAME_MS = 50
 # Bounded generously against the 50ms frame period: a join this long is
@@ -49,7 +56,19 @@ def _write_text(path: str, text: str) -> None:
         handle.write(text)
 
 
-def _build_source(cfg: dict[str, Any]) -> LiveInfoSource | PhraseSource:
+def _build_source(cfg: dict[str, Any]) -> LiveInfoSource | PhraseSource | _SourceLike:
+    if cfg["source"] == "contributor":
+        from resources.lib.sources.discovery import (
+            discover,
+            kodi_list_addons,
+            kodi_load_module,
+        )
+        wanted = cfg["source_addon_id"]
+        for source in discover(kodi_list_addons, kodi_load_module, log):
+            if not wanted or source.id == wanted:
+                return source
+        log(f"no contributor source {wanted!r} found, falling back to live info")
+        return LiveInfoSource(cfg["info_flags"], cfg["info_combine"])
     if cfg["source"] == "phrases":
         pools = [parse_phrases(_read_text(cfg["phrases_file"]))]
         if cfg["phrases_url"]:

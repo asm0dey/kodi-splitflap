@@ -31,6 +31,7 @@ def read() -> dict[str, Any]:
         "letter_colour": get("letter_colour") or "E8E8E8",
         "accent_colour": get("accent_colour") or "2B5CE6",
         "source": get("source") or "liveinfo",
+        "source_addon_id": get("source_addon_id"),
         "info_flags": {
             "time": get_bool("info_time"),
             "date": get_bool("info_date"),

@@ -47,6 +47,14 @@ msgctxt "#30022"
 msgid "Phrases"
 msgstr ""
 
+msgctxt "#30023"
+msgid "Add-on"
+msgstr ""
+
+msgctxt "#30024"
+msgid "Source add-on id"
+msgstr ""
+
 msgctxt "#30030"
 msgid "Time"
 msgstr ""

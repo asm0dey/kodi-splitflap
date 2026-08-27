@@ -38,9 +38,13 @@
             <options>
               <option label="30021">liveinfo</option>
               <option label="30022">phrases</option>
+              <option label="30023">contributor</option>
             </options>
           </constraints>
           <control type="spinner" format="string"/>
+        </setting>
+        <setting id="source_addon_id" type="string" label="30024">
+          <level>0</level><default></default><control type="edit" format="string"/>
         </setting>
         <setting id="info_time" type="boolean" label="30030">
           <level>0</level><default>true</default><control type="toggle"/>

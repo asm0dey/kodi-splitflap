@@ -34,12 +34,13 @@ Split-Flap Board actually wins the race.
 | Maximum flap steps | Caps how many drum positions a cell steps through per transition, so a long jump around the drum doesn't take forever to settle. |
 | Letter colour (RRGGBB) | Tile lettering colour. |
 | Accent colour (RRGGBB) | Colour used for accented cells (e.g. an author line, a corner marker). |
-| Show | What the board displays: live info or phrases. One at a time — they never interleave. |
+| Show | What the board displays: live info, phrases, or an installed contributor add-on (see "Writing a source add-on" below). One at a time — they never interleave. |
 | Time / Date / Weather / Now playing | Which live-info fields are shown, when Show is set to live info. |
 | Combine onto one board | Whether the enabled live-info fields share one board, or rotate across separate boards. |
 | Phrase file | One phrase per board. `#` comments and blank lines are ignored, `\n` puts the author on its own line. |
 | Phrase URL | Optional remote phrase list, merged into the same pool as the phrase file. Fetched on a background thread; falls back to a disk cache if the fetch fails. |
 | Glyph pack | Add-on id of an installed glyph pack, for non-Latin scripts or a different typeface. |
+| Source add-on id | Which contributor add-on to use, when Show is set to Add-on. Leave blank to use whichever one is found; an uninstalled or missing contributor falls back to live info. |
 
 ## Phrase file format
 
@@ -80,6 +81,51 @@ its id.
 
 Arabic and Devanagari are out of scope: a cell grid cannot render connected
 scripts. Real split-flap hardware has the same limitation.
+
+## Writing a source add-on
+
+A source add-on supplies board content; this add-on renders it. Declare a
+normal python module with an id under `script.splitflap.source.` and expose
+`create_source()` from `source.py`:
+
+```python
+# script.splitflap.source.quotes/source.py
+class QuoteSource:
+    id = "script.splitflap.source.quotes"
+
+    def next(self):
+        return {
+            "lines": ["THE ONLY WAY OUT", "IS THROUGH"],
+            "accents": [{"corner": "top-left"}],
+            "refresh_in": None,
+        }
+
+
+def create_source():
+    return QuoteSource()
+```
+
+`next()` is called when the board's hold expires, or after `refresh_in`
+seconds, whichever comes first. Return `refresh_in: None` if your content
+only changes when asked.
+
+Return any object with a `next()` method; a plain dict with `lines`,
+`accents` and `refresh_in` works. Accents are positioned relatively —
+`{"before_line": n}`, `{"corner": "top-left"}` — or explicitly with
+`{"cell": [row, col]}`.
+
+Keep `next()` fast. It runs on the render loop, and a source that raises is
+disabled for the session while a source that **hangs** freezes the
+screensaver.
+
+No dependency declaration is needed on either side — this add-on discovers
+any installed, enabled `xbmc.python.module` add-on whose id starts with
+`script.splitflap.source.` and calls its `create_source()`. Set Show to
+Add-on to use it (optionally naming the exact Source add-on id if more than
+one contributor is installed). A contributor that fails to import, has no
+`create_source()`, or whose `next()` raises is skipped and logged — one
+broken contributor never hides the others, and an uninstalled or missing
+contributor falls back to live info.
 
 ## Development
 
