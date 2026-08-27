@@ -27,15 +27,14 @@ _TYPOGRAPHIC = (
     "€",  # euro
     "–",  # en dash
     "—",  # em dash
-    "'", "'",  # single quotes
-    """, """,  # double quotes
+    chr(0x2018), chr(0x2019),  # single quotes ' '
+    chr(0x201C), chr(0x201D),  # double quotes " "
     "…",  # ellipsis
     "†", "‡",  # dagger, double dagger
 )
 
 # Greek capital Mu, retained because the design spec's bundled set names it.
-# It also happens to be the uppercase target of the micro sign (µ), which
-# helps satisfy the uppercase-closure invariant.
+# Trivially closed under uppercase (Μ.upper() == Μ).
 _CLOSURE = ("Μ",)
 
 _SPECIAL = (TOFU,)

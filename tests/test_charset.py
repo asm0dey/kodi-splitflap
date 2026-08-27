@@ -42,3 +42,14 @@ def test_uppercase_closure_per_character():
 def test_no_duplicates():
     cs = bundled_charset()
     assert len(cs) == len(set(cs))
+
+
+def test_every_entry_is_a_single_character():
+    for ch in bundled_charset():
+        assert len(ch) == 1, "%r is %d characters, not 1" % (ch, len(ch))
+
+
+def test_contains_curly_quotes():
+    cs = set(bundled_charset())
+    for ch in "''""":
+        assert ch in cs
