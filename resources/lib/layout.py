@@ -35,13 +35,18 @@ def build(lines: list[str] | tuple[str, ...],
         pieces = _wrap(line, cols)
         wrapped.extend(pieces if pieces else [""])
 
-    # 5. Overflow ellipsises rather than paginating.
+    # 5. Overflow ellipsises rather than paginating -- but only when text is
+    #    genuinely lost. Merging the tail into one row often makes it fit, and
+    #    an ellipsis on a row that dropped nothing tells the viewer a lie.
     truncated = False
     if len(wrapped) > rows:
         remainder = " ".join(wrapped[rows - 1:])
-        last = remainder[:cols - 1] + ELLIPSIS
+        if len(remainder) > cols:
+            last = remainder[:cols - 1] + ELLIPSIS
+            truncated = True          # hard-fills the row, ellipsis in the last cell
+        else:
+            last = remainder          # everything survived; centre it normally
         wrapped = wrapped[:rows - 1] + [last]
-        truncated = True
 
     # 4. Size the block to its line count and centre it vertically.
     top = (rows - len(wrapped)) // 2
@@ -81,10 +86,11 @@ def _wrap(text: str, cols: int) -> list[str]:
 
     Returns [] for text with no words.
     """
-    items: list[str] = text.upper().split()
+    if cols < 1:
+        return []
+    items: list[str] = text.split()
     result: list[str] = []
-    if len(items) == 0:
-        return result
+    if len(items) == 0: return result
     long = False
     while len(items) != 0:
         cur_result = items.pop(0)
@@ -94,8 +100,7 @@ def _wrap(text: str, cols: int) -> list[str]:
                 result.append(cur_result[0:cols])
                 cur_result = cur_result[cols:]
             else:
-                if long:
-                    result.append(cur_result)
+                if long: result.append(cur_result)
                 break
         if not long:
             while len(cur_result) <= cols:
@@ -114,7 +119,8 @@ def _wrap(text: str, cols: int) -> list[str]:
     return result
 
 
-def _resolve_accents(accents, rows: int, cols: int, top: int,
+def _resolve_accents(accents: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+                     rows: int, cols: int, top: int,
                      line_start: list[int], offsets: list[int],
                      wrapped: list[str]) -> list[tuple[int, int]]:
     """Turn relative accent specs into concrete (row, col) cells.

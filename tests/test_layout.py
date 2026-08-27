@@ -165,3 +165,27 @@ def test_accent_outside_the_grid_is_dropped_not_raised():
 def test_empty_lines_give_a_blank_board():
     g = grid([])
     assert all(row.strip() == "" for row in g)
+
+
+def test_remainder_that_fits_is_not_ellipsised():
+    """Merging the tail into one row often makes it fit.
+
+    An ellipsis on a row that dropped nothing tells the viewer text was
+    lost when it was not. Only genuine overflow earns the ellipsis.
+    """
+    g = grid(["AAAAAAAAA", "X", "Y"], rows=2, cols=10)
+    assert ELLIPSIS not in "".join(g)
+    assert g[-1].strip() == "X Y"
+
+
+def test_remainder_that_fits_is_centred_not_left_filled():
+    g = grid(["AAAAAAAAA", "X", "Y"], rows=2, cols=10)
+    assert g[-1] == "   X Y    "
+
+
+def test_remainder_that_overflows_still_ellipsises():
+    """The mirror case must keep working: real loss, real ellipsis."""
+    g = grid(["AAAAAAAAA"] + ["WORD"] * 10, rows=2, cols=10)
+    assert g[-1].endswith(ELLIPSIS)
+    assert len(g[-1]) == 10
+    assert g[-1] != " " * 9 + ELLIPSIS
