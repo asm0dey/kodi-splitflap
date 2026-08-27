@@ -80,9 +80,11 @@ def test_source_specific_settings_are_hidden_for_other_sources():
     }
     found = {}
     for setting in _settings_root().iter("setting"):
-        dep = setting.find("./dependencies/dependency[@type='visible']")
-        if dep is not None and dep.get("setting") == "source":
-            found[setting.get("id")] = (dep.text or "").strip()
+        cond = setting.find(
+            "./dependencies/dependency[@type='visible']/condition"
+        )
+        if cond is not None and cond.get("setting") == "source":
+            found[setting.get("id")] = (cond.text or "").strip()
     assert found == expected
 
 
