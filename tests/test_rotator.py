@@ -93,3 +93,19 @@ def test_raising_source_with_no_fallback_yields_empty_content():
     content = r.poll(0.0)
     assert content is not None
     assert content.lines == ()
+
+
+def test_new_board_has_not_settled_until_settled_is_called():
+    """Fresh board from poll() must not be replaced mid-flap without settled()."""
+    src = Fake([Content(["A"]), Content(["B"])])
+    r = Rotator(src, hold_s=1)
+    r.poll(0.0)
+    r.settled(0.0)
+    # Hold expires at 1.0
+    content = r.poll(1.5)  # Should return new content B
+    assert content is not None
+    assert content.lines == ("B",)
+    # New board just appeared; even at the same timestamp, it should not be
+    # immediately replaced without settled() being called first. This pins
+    # the state machine rule: _settled_at is None after poll returns content.
+    assert r.poll(1.5) is None

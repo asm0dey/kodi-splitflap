@@ -41,7 +41,7 @@ class Rotator:
         self._polled_at: float | None = None
         self.failed = False
 
-    def _call(self, now_s: float) -> Content:
+    def _call(self) -> Content:
         if not self.failed:
             try:
                 return self._source.next()
@@ -65,7 +65,7 @@ class Rotator:
 
     def poll(self, now_s: float) -> Content | None:
         if self._current is None:
-            self._current = self._call(now_s)
+            self._current = self._call()
             self._polled_at = now_s
             self._settled_at = None
             return self._current
@@ -83,7 +83,7 @@ class Rotator:
         if not (refresh_due or hold_due):
             return None
 
-        self._current = self._call(now_s)
+        self._current = self._call()
         self._polled_at = now_s
         self._settled_at = None
         return self._current
