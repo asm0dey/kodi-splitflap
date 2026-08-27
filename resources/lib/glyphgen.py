@@ -84,6 +84,67 @@ def render_accent(out_dir: str, half_w: int, half_h: int) -> list[str]:
     return written
 
 
+CASING_TOP = 34         # the housing, lit from above
+CASING_BOTTOM = 18
+WELL_VALUE = 8          # the recess the tile field sits in
+
+
+def render_frame(out_dir: str, height: int = 1080) -> list[str]:
+    """Render the housing textures the board is mounted in.
+
+    Two pieces, both stretchable without distortion so one set works at any
+    row count: a vertical gradient for the casing, and a flat white pixel
+    the renderer tints for the recessed well and its lip. Drawing the frame
+    from stretched solids rather than one big picture is what keeps it
+    independent of the geometry, which changes with the rows setting.
+    """
+    from PIL import Image, ImageDraw
+
+    casing = Image.new("L", (4, height))
+    draw = ImageDraw.Draw(casing)
+    for y in range(height):
+        t = y / height
+        draw.line([(0, y), (4, y)],
+                  fill=int(CASING_TOP + (CASING_BOTTOM - CASING_TOP) * t))
+    casing.save(os.path.join(out_dir, "frame_casing.png"), "PNG")
+
+    Image.new("L", (1, 1), 255).save(os.path.join(out_dir, "white.png"), "PNG")
+    return ["frame_casing.png", "white.png"]
+
+
+def render_plate(out_dir: str, font_path: str, text: str = "KODI",
+                 width: int = 420, height: int = 64) -> list[str]:
+    """The maker's plate on the casing, as a real board carries.
+
+    Wide letter-spacing, all caps, dim against the housing -- the way a
+    brand was screen-printed onto equipment in the era this board is from.
+    The reference photograph carries its own plate in the same position.
+    """
+    from PIL import Image, ImageDraw, ImageFont
+
+    plate = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(plate)
+    size = int(height * 0.46)
+    font = ImageFont.truetype(font_path, size)
+
+    tracked = " ".join(text)            # 80s equipment lettering is airy
+    box = draw.textbbox((0, 0), tracked, font=font)
+    x = (width - (box[2] - box[0])) / 2 - box[0]
+    y = (height - (box[3] - box[1])) / 2 - box[1]
+    draw.text((x, y), tracked, fill=190, font=font)
+
+    # a hairline rule either side, stopping short of the text
+    rule_y = height // 2
+    pad = (box[2] - box[0]) / 2 + size * 0.9
+    draw.line([(width / 2 - pad - size * 1.6, rule_y),
+               (width / 2 - pad, rule_y)], fill=90)
+    draw.line([(width / 2 + pad, rule_y),
+               (width / 2 + pad + size * 1.6, rule_y)], fill=90)
+
+    plate.save(os.path.join(out_dir, "frame_plate.png"), "PNG")
+    return ["frame_plate.png"]
+
+
 def glyph_filename(ch: str, half: str) -> str:
     prefix = "t" if half == "top" else "b"
     return f"{prefix}_{ord(ch):04x}.png"

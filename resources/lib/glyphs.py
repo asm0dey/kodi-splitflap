@@ -83,6 +83,22 @@ class GlyphIndex:
             f"{self._dirs!r} -- the bundled set is incomplete"
         )
 
+    def asset_path(self, name: str) -> str:
+        """Resolve a non-character asset (the casing, the white fill).
+
+        Same search order as glyphs, so a pack can restyle the housing.
+        Raises rather than falling back: a missing frame texture would
+        leave Kodi's live UI showing through the board's border.
+        """
+        for directory in self._dirs:
+            path = f"{directory}/{name}"
+            if self._exists(path):
+                return path
+        raise LookupError(
+            f"frame asset {name!r} is missing from every search dir "
+            f"{self._dirs!r} -- the bundled set is incomplete"
+        )
+
     def charset(self, candidates: Iterable[str]) -> set[str]:
         """Characters with BOTH halves present, so a tile can render them."""
         out = set()

@@ -27,7 +27,7 @@ import xbmcgui
 from .charset import BLANK
 from .colour import FALLBACK_ARGB, to_argb
 from .flap import PaintOp
-from .geometry import Geometry
+from .geometry import SKIN_H, SKIN_W, Geometry
 from .glyphs import GlyphIndex
 
 
@@ -75,6 +75,7 @@ class BoardView:
         self._accent_cells = frozenset()
         # Controls are freshly created blank, so the face cache must agree.
         self._face = {}
+        self._build_frame()
         blank_top = self._index.path(BLANK, "top")
         blank_bottom = self._index.path(BLANK, "bottom")
         # Typed as the base Control: addControls takes List[Control], and
@@ -90,6 +91,57 @@ class BoardView:
                     controls.append(control)
         self._window.addControls(controls)
         xbmc.log(f"splitflap: built {len(controls)} controls", xbmc.LOGDEBUG)
+
+    def _build_frame(self) -> None:
+        """The housing the board is mounted in, drawn behind the tiles.
+
+        Without it the letterboxed area is flat black and the board reads as
+        a screen showing a departure board rather than as one hanging on a
+        wall. Built from stretched solids rather than a single picture, so
+        it tracks the geometry at any row count.
+        """
+        g = self._geo
+        casing = self._index.asset_path("frame_casing.png")
+        white = self._index.asset_path("white.png")
+
+        pad = max(6, g.gap * 3)
+        x0, y0 = g.origin_x - pad, g.origin_y - pad
+        x1 = g.origin_x + g.cols * (g.tile_w + g.gap) - g.gap + pad
+        y1 = g.origin_y + g.rows * (g.tile_h + g.gap) - g.gap + pad
+
+        plain = to_argb("FFFFFF") or FALLBACK_ARGB
+        recess = to_argb("0A0A0B") or FALLBACK_ARGB
+        lip = to_argb("34343A") or FALLBACK_ARGB
+        underside = to_argb("060607") or FALLBACK_ARGB
+
+        parts: list[xbmcgui.Control] = [
+            # the casing fills the frame and is lit from above
+            self._make_control(0, 0, SKIN_W, SKIN_H, casing, plain),
+            # the well the tile field is recessed into
+            self._make_control(x0, y0, x1 - x0, y1 - y0, white, recess),
+            # a lit lip along the top inner edge, a dark one along the bottom
+            self._make_control(x0, y0, x1 - x0, 2, white, lip),
+            self._make_control(x0, y1 - 2, x1 - x0, 2, white, underside),
+        ]
+
+        # The maker's plate, centred in the casing below the well. Skipped
+        # rather than fatal if a pack ships no plate: it is decoration, not
+        # the housing, and losing it should not cost the board.
+        try:
+            plate = self._index.asset_path("frame_plate.png")
+        except LookupError:
+            plate = ""
+        if plate:
+            plate_w = min(420, (x1 - x0) // 3)
+            plate_h = max(12, plate_w * 64 // 420)
+            below = SKIN_H - y1
+            if below > plate_h + 8:
+                parts.append(self._make_control(
+                    (SKIN_W - plate_w) // 2,
+                    y1 + (below - plate_h) // 2,
+                    plate_w, plate_h, plate, plain,
+                ))
+        self._window.addControls(parts)
 
     def _make_control(self, x: int, y: int, w: int, h: int, texture: str,
                        colour: str) -> xbmcgui.ControlImage:
