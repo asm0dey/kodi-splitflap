@@ -41,6 +41,7 @@ Direct downloads, no updates:
 
 - **[screensaver.splitflap](https://asm0dey.github.io/kodi-splitflap/repo/screensaver.splitflap/)** — the screensaver
 - **[resource.images.splitflap.nimbus-ru](https://asm0dey.github.io/kodi-splitflap/repo/resource.images.splitflap.nimbus-ru/)** — Cyrillic glyph pack
+- **[script.splitflap.source.recentlyadded](https://asm0dey.github.io/kodi-splitflap/repo/script.splitflap.source.recentlyadded/)** — Recently Added source add-on
 
 Or build one yourself with `tools/build_addon.sh` (see Development below).
 
@@ -66,7 +67,8 @@ Split-Flap Board actually wins the race.
 | Phrase file | One phrase per board. `#` comments and blank lines are ignored, `\n` puts the author on its own line. |
 | Phrase URL | Optional remote phrase list, merged into the same pool as the phrase file. Fetched on a background thread; falls back to a disk cache if the fetch fails. |
 | Glyph pack | Add-on id of an installed glyph pack, for non-Latin scripts or a different typeface. |
-| Source add-on id | Which contributor add-on to use, when Show is set to Add-on. Leave blank to use whichever one is found; an uninstalled or missing contributor falls back to live info. |
+| Source add-on | When Show is set to Add-on, this button lists the installed source add-ons by name — pick one, nothing to type. Left unset, the screensaver uses whichever contributor it finds; an uninstalled or missing one falls back to live info. |
+| Configure source add-on | Opens the picked add-on's own settings. |
 
 ## Phrase file format
 
@@ -107,6 +109,32 @@ its id.
 
 Arabic and Devanagari are out of scope: a cell grid cannot render connected
 scripts. Real split-flap hardware has the same limitation.
+
+## Recently Added
+
+A bundled source add-on, `script.splitflap.source.recentlyadded`, boards the
+newest additions to Kodi's video library — one item per board:
+
+```
+█ THE BEAR
+█ S03E04 HONEYDEW
+```
+
+Movies and episodes are merged into one newest-first list and the top N kept,
+with no per-type quota: if the last twenty things added were all episodes, you
+get twenty episode boards. A movie's second line is its year, an episode's is
+its season/episode code and title. Both lines carry an accent marker.
+
+Install it from the repository, then set Show to **Add-on**. Its own settings
+(Add-ons → My add-ons → ...) are:
+
+| Setting | Meaning |
+|---|---|
+| Seconds per board | How long each item is held. Independent of the screensaver's own hold — it can be longer or shorter. |
+| How many recent items to cycle | Top N, newest first. Re-queried when the cycle wraps. |
+
+An empty library boards `NO RECENT ADDITIONS`; a library query that fails keeps
+showing the last items it did get.
 
 ## Writing a source add-on
 

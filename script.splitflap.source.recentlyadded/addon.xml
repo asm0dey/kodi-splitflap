@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.splitflap.source.recentlyadded" name="Split-Flap — Recently Added" version="0.1.0" provider-name="finkel">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+  </requires>
+  <extension point="xbmc.python.module" library="."/>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Latest library additions for the Split-Flap Board</summary>
+    <description lang="en_GB">Supplies the Split-Flap Board screensaver with the newest additions to Kodi's video library — movies and episodes merged newest-first, one per board. Set the screensaver's Show setting to Add-on to use it.</description>
+    <license>GPL-2.0-or-later</license>
+    <platform>all</platform>
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
+  </extension>
+</addon>

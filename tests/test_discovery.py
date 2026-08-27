@@ -1,5 +1,9 @@
 from resources.lib.sources.base import Content
-from resources.lib.sources.discovery import SOURCE_PREFIX, discover
+from resources.lib.sources.discovery import (
+    SOURCE_PREFIX,
+    discover,
+    list_choices,
+)
 
 
 class Module:
@@ -82,3 +86,38 @@ def test_listing_failure_yields_no_sources_rather_than_raising():
     logged = []
     assert discover(boom, modules({}), logged.append) == []
     assert logged
+
+
+def names(mapping):
+    def name_of(addon_id):
+        name = mapping[addon_id]
+        if isinstance(name, Exception):
+            raise name
+        return name
+    return name_of
+
+
+def test_choices_label_contributors_by_their_add_on_name():
+    listed = [(SOURCE_PREFIX + "recent", "/a")]
+    name_of = names({SOURCE_PREFIX + "recent": "Recently Added"})
+    assert list_choices(listed, name_of) == [
+        (SOURCE_PREFIX + "recent", "Recently Added")]
+
+
+def test_choices_ignore_add_ons_that_are_not_contributors():
+    listed = [("script.module.requests", "/r"), (SOURCE_PREFIX + "a", "/a")]
+    assert [i for i, _ in list_choices(listed, names({SOURCE_PREFIX + "a": "A"}))] == [
+        SOURCE_PREFIX + "a"]
+
+
+def test_choices_are_sorted_by_label():
+    listed = [(SOURCE_PREFIX + "z", "/z"), (SOURCE_PREFIX + "a", "/a")]
+    mapping = {SOURCE_PREFIX + "z": "Alpha", SOURCE_PREFIX + "a": "Zulu"}
+    assert [n for _, n in list_choices(listed, names(mapping))] == ["Alpha", "Zulu"]
+
+
+def test_a_contributor_whose_name_cannot_be_read_falls_back_to_its_id():
+    listed = [(SOURCE_PREFIX + "broken", "/b")]
+    mapping = {SOURCE_PREFIX + "broken": RuntimeError("gone")}
+    assert list_choices(listed, names(mapping)) == [
+        (SOURCE_PREFIX + "broken", SOURCE_PREFIX + "broken")]

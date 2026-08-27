@@ -1,0 +1,16 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en_GB\n"
+
+msgctxt "#30001"
+msgid "Content"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Seconds per board"
+msgstr ""
+
+msgctxt "#30011"
+msgid "How many recent items to cycle"
+msgstr ""

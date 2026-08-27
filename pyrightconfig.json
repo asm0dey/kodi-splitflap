@@ -1,12 +1,14 @@
 {
   "include": [
     "screensaver.splitflap",
+    "script.splitflap.source.recentlyadded",
     "tools",
     "tests"
   ],
   "extraPaths": [
     ".",
-    "screensaver.splitflap"
+    "screensaver.splitflap",
+    "script.splitflap.source.recentlyadded"
   ],
   "venvPath": ".",
   "venv": ".venv",
@@ -17,7 +19,8 @@
       "root": ".",
       "extraPaths": [
         ".",
-        "screensaver.splitflap"
+        "screensaver.splitflap",
+        "script.splitflap.source.recentlyadded"
       ]
     }
   ]
