@@ -174,7 +174,16 @@ class Screensaver(xbmcgui.WindowXMLDialog):
             while not self._stop and not monitor.abortRequested():
                 if not xbmc.getCondVisibility("System.ScreenSaverActive"):
                     break
-                now = time.time()
+                # monotonic, not wall-clock time: an NTP step (e.g. a Fire TV
+                # Stick with no RTC, stepping its clock just after boot --
+                # exactly when a screensaver first runs) would otherwise
+                # stall every flap on a backward step or dump a cell's whole
+                # sequence in one tick on a forward step. Rotator and
+                # FlapMachine only ever compare deltas of this clock, so
+                # monotonic works for both. LiveInfoSource is unaffected --
+                # it owns its own wall-clock (time.time by default) for
+                # `seconds_to_next_minute`, independent of this loop's clock.
+                now = time.monotonic()
                 now_ms = int(now * 1000)
                 content = rotator.poll(now)
                 if content is not None:
