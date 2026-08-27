@@ -39,6 +39,26 @@ def test_addon_xml_declares_the_resource_images_type(tmp_path):
     assert "kodi.resource.images" in xml
 
 
+def test_addon_xml_declares_kodi_resource_dependency(tmp_path):
+    """A resource.images addon depends on kodi.resource, not a GUI API.
+
+    Parses the manifest instead of substring-matching so a malformed
+    <requires> block (missing element, wrong attribute name) fails the
+    test rather than slipping through on a coincidental text match.
+    """
+    import xml.etree.ElementTree as ET
+
+    out = str(tmp_path / "pack.zip")
+    build_pack(FONT, "A", "resource.images.splitflap.test", "Test Pack",
+               out, 40, 36)
+    with zipfile.ZipFile(out) as zf:
+        xml_bytes = zf.read("resource.images.splitflap.test/addon.xml")
+    root = ET.fromstring(xml_bytes)
+    imported = [imp.get("addon") for imp in root.findall("./requires/import")]
+    assert "kodi.resource" in imported
+    assert "xbmc.gui" not in imported
+
+
 def test_pack_json_records_metrics(tmp_path):
     import json
     out = str(tmp_path / "pack.zip")

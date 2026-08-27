@@ -28,7 +28,7 @@ from resources.lib.glyphgen import render_glyphs
 ADDON_XML = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="{id}" name="{name}" version="1.0.0" provider-name="splitflap">
   <requires>
-    <import addon="xbmc.gui" version="5.14.0"/>
+    <import addon="kodi.resource" version="1.0.0"/>
   </requires>
   <extension point="kodi.resource.images"/>
   <extension point="xbmc.addon.metadata">
