@@ -122,3 +122,24 @@ def test_version_bump_parts():
     assert bump(text, "patch")[1] == "1.2.4"
     assert bump(text, "minor")[1] == "1.3.0"
     assert bump(text, "major")[1] == "2.0.0"
+
+
+def test_string_settings_with_an_empty_default_allow_empty():
+    """Kodi refuses to construct a string setting with an empty default.
+
+    Without <allowempty>, CSettingString logs "error reading the default
+    value of ..." and the setting never appears in the UI at all -- which
+    is how four settings silently went missing rather than misbehaving.
+    """
+    for setting in _settings_root().iter("setting"):
+        if setting.get("type") not in ("string", "path"):
+            continue
+        default = setting.find("default")
+        empty = default is not None and not (default.text or "").strip()
+        if not empty:
+            continue
+        allow = setting.find("./constraints/allowempty")
+        assert allow is not None and allow.text == "true", (
+            f"{setting.get('id')} has an empty default but no allowempty; "
+            "Kodi will drop the setting"
+        )
