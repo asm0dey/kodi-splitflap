@@ -60,14 +60,50 @@ def test_top_and_bottom_halves_differ(tmp_path):
     assert top != bot
 
 
-def test_top_and_bottom_halves_of_a_blank_card_are_identical(tmp_path):
-    """Proves the comparison above is about the LETTERFORM, not the hinge.
+def test_letters_reach_both_halves(tmp_path):
+    """Different letters must produce different top AND bottom halves.
 
-    Without cropping the hinge off, this would pass too -- the hinge row
-    alone guarantees raw bytes differ, even with no letter drawn at all.
-    That was the bug in the un-cropped version of the test above.
+    This is what the old byte comparison was reaching for. Comparing one
+    card's two halves cannot show it: they differ anyway, first because of
+    the hinge and now because of the baked depth cues. Comparing the SAME
+    half across two letters isolates the letterform.
     """
+    from PIL import Image
+
+    render_glyphs("AB", FONT, str(tmp_path), 78, 71)
+
+    def raw(name: str) -> bytes:
+        with Image.open(os.path.join(str(tmp_path), name)) as im:
+            return im.tobytes()
+
+    assert raw("t_0041.png") != raw("t_0042.png")
+    assert raw("b_0041.png") != raw("b_0042.png")
+
+
+def test_upper_flap_casts_a_shadow_on_the_lower_half(tmp_path):
+    """The depth cue that makes a tile read as two stacked cards.
+
+    Without it the halves are one flat square with a line through it. The
+    row just below the hinge must be darker than the equivalent row below
+    the top half's own top edge, because the upper flap shades it.
+    """
+    from PIL import Image
+
     render_glyphs(" ", FONT, str(tmp_path), 78, 71)
-    top = _hinge_cropped_bytes(os.path.join(str(tmp_path), "t_0020.png"))
-    bot = _hinge_cropped_bytes(os.path.join(str(tmp_path), "b_0020.png"))
-    assert top == bot
+    probe = 4
+    with Image.open(os.path.join(str(tmp_path), "t_0020.png")) as top:
+        top_row = sum(top.crop((0, probe, top.width, probe + 1)).getdata())
+    with Image.open(os.path.join(str(tmp_path), "b_0020.png")) as bot:
+        bot_row = sum(bot.crop((0, probe, bot.width, probe + 1)).getdata())
+    assert bot_row < top_row, "the lower half should be shaded by the flap above"
+
+
+def test_each_half_is_top_lit(tmp_path):
+    """Each half is brightest at its own top edge and falls away downward."""
+    from PIL import Image
+
+    render_glyphs(" ", FONT, str(tmp_path), 78, 71)
+    with Image.open(os.path.join(str(tmp_path), "t_0020.png")) as top:
+        rows = [sum(top.crop((0, y, top.width, y + 1)).getdata())
+                for y in (0, top.height // 2, top.height - 2)]
+    assert rows[0] > rows[1] > rows[2], f"not top-lit: {rows}"

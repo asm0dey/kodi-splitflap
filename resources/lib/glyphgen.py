@@ -9,10 +9,23 @@ tint is applied by Kodi at runtime.
 """
 import os
 from collections.abc import Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # PIL is a build-time dependency, imported lazily at runtime
+    from PIL.Image import Image
 
 CARD_VALUE = 24        # near-black card, so a tint barely moves it
 LETTER_VALUE = 232     # light letterform, so a tint colours it
 HINGE_VALUE = 8         # the seam between halves
+
+# Depth cues, baked in at build time so painting costs nothing at runtime.
+# All three survive tinting: Kodi multiplies colorDiffuse over the greyscale,
+# so shading rides along with the colour instead of fighting it.
+EDGE_LIGHT = 14         # catch-light on each half's own top edge
+FACE_FALLOFF = 10       # each half is top-lit and falls away downward
+FACE_SHADE = 4          # ...and darkens slightly toward its own bottom
+FLAP_SHADOW = 14        # the upper flap's shadow cast onto the lower half
+FLAP_SHADOW_ROWS = 18   # how far that shadow reaches down
 
 
 def glyph_filename(ch: str, half: str) -> str:
@@ -24,7 +37,7 @@ def render_glyphs(
     chars: Iterable[str], font_path: str, out_dir: str, half_w: int, half_h: int
 ) -> list[str]:
     """Render each character as a top and a bottom half. Returns filenames."""
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import ImageDraw, ImageFont
 
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
@@ -40,7 +53,7 @@ def render_glyphs(
 
     written = []
     for ch in chars:
-        card = Image.new("L", (half_w, full_h), CARD_VALUE)
+        card = _shaded_card(half_w, half_h, full_h)
         draw = ImageDraw.Draw(card)
         _draw_centred(draw, ch, font, half_w, full_h)
         draw.line([(0, half_h - 1), (half_w, half_h - 1)], fill=HINGE_VALUE, width=2)
@@ -53,6 +66,44 @@ def render_glyphs(
             card.crop(box).convert("L").save(os.path.join(out_dir, name), "PNG")
             written.append(name)
     return written
+
+
+def _shaded_card(half_w: int, half_h: int, full_h: int) -> "Image":
+    """A two-half card with the depth cues a real split-flap board has.
+
+    Three of them, in order of how much they matter:
+
+    1. The upper flap casts a shadow onto the top of the lower half. This is
+       the only cue that says one card sits in FRONT of another, which is
+       what makes a tile read as stacked cards rather than one square with a
+       line through it.
+    2. Each half is top-lit -- brightest at its own top edge, falling away
+       downward -- so the two halves read as two separate faces.
+    3. A catch-light on each half's top edge gives the card an edge rather
+       than a fade into the background.
+    """
+    from PIL import Image, ImageDraw
+
+    card = Image.new("L", (half_w, full_h), CARD_VALUE)
+    draw = ImageDraw.Draw(card)
+
+    for half_top in (0, half_h):
+        for y in range(half_h):
+            t = y / half_h
+            value = CARD_VALUE + int(FACE_FALLOFF * (1 - t) ** 1.6)
+            value -= int(FACE_SHADE * t)
+            draw.line([(0, half_top + y), (half_w, half_top + y)],
+                      fill=max(0, value))
+
+    for y in range(min(FLAP_SHADOW_ROWS, half_h)):
+        t = y / FLAP_SHADOW_ROWS
+        draw.line([(0, half_h + y), (half_w, half_h + y)],
+                  fill=max(0, CARD_VALUE - int(FLAP_SHADOW * (1 - t) ** 1.5)))
+
+    for half_top in (0, half_h):
+        draw.line([(0, half_top), (half_w, half_top)], fill=CARD_VALUE + EDGE_LIGHT)
+
+    return card
 
 
 def _fit_font_size(font_path: str, full_h: int, half_w: int,
