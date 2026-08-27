@@ -49,6 +49,7 @@ Kodi shell.
 ```
 resources/lib/
   layout.py      PURE  text -> screens: uppercase, wrap, centre, paginate
+  template.py    PURE  {InfoLabel} substitution, --- screen splitting
   flap.py        PURE  animation state machine -> (tile, half, char) paint ops
   glyphs.py      PURE  glyph index: resolution order, codepoint naming
   glyphgen.py    PURE  TTF -> tile-half PNGs (PIL; try-imported)
@@ -57,7 +58,7 @@ resources/lib/
     base.py      PURE  Source protocol
     textfile.py  PURE  one phrase per line
     remote.py    PURE  parse; fetch on a background thread
-    kodiinfo.py  KODI  clock / weather / now-playing via infolabels
+    infolabel.py KODI  thin getInfoLabel getter; substitution lives in template.py
   board.py       KODI  geometry, control creation, paint(tile, half, char)
 default.py       KODI  entry point, window, main loop, exit handling
 tools/
@@ -281,12 +282,44 @@ class Source(Protocol):
 |---|---|---|
 | `textfile` | pure | one phrase per line, `#` comments, blank lines dropped, mtime reload |
 | `remote` | pure parse, threaded fetch | `urllib` with timeout. Plain text or JSON (`[...]` / `{"phrases":[...]}`). Caches to `addon_data` with TTL. Fail -> cache -> bundled defaults. Never on the render thread |
-| `clock` | infolabel | `System.Time`, `System.Date` |
-| `weather` | infolabel | `Weather.Location` / `.Temperature` / `.Conditions`. Empty location means no weather addon is configured — the source auto-disables rather than showing blanks |
-| `nowplaying` | infolabel | `MusicPlayer.Artist` / `.Title`. Music-only in practice; Kodi does not screensave over video |
+| `infolabel` | pure substitution, thin `xbmc.getInfoLabel` getter | template-driven; see below |
 
-Weather uses Kodi's own weather service, so there are no API keys, no HTTP, and no
-secrets in this addon. It renders as the reference does: `SYDNEY` / `17° RAIN`.
+### The info source
+
+One template-driven source replaces separate clock / weather / now-playing classes.
+`{Token}` resolves through `xbmc.getInfoLabel('Token')`; `---` on its own line
+separates screens.
+
+```
+{System.Time}
+---
+{Weather.Location}
+{Weather.Temperature} {Weather.Conditions}
+```
+
+Settings exposes a **preset dropdown** that fills the template, plus the raw field for
+custom use — editing a template with a TV remote is miserable, so the presets are the
+real interface:
+
+| preset | screens |
+|---|---|
+| Time | `{System.Time}` |
+| Weather | location, then temperature + conditions |
+| Time + Weather | both on one board |
+| Time, then Weather | two screens, alternating |
+| Now playing | `{MusicPlayer.Artist}` / `{MusicPlayer.Title}` |
+| Custom | raw template field |
+
+**Empty-token rule** (generalises what was previously per-source auto-disable): a token
+resolving empty drops its line; a screen resolving wholly empty is skipped. So an
+unconfigured weather addon means the weather screen never appears, rather than a board
+of blanks.
+
+Substitution is pure and unit-tested; only the getter touches Kodi. Weather comes from
+Kodi's own weather service, so this addon needs no API keys, no HTTP, and no secrets.
+It renders as the reference does: `SYDNEY` / `17° RAIN`.
+
+Now-playing is music-only in practice — Kodi does not screensave over video.
 
 `rotator.py` round-robins enabled sources, `dwell` seconds per screen, re-reading live
 sources on each turn.
@@ -313,6 +346,8 @@ generation fixes it. Real split-flap hardware has the same limitation.
 Board     columns (22) | text rows (3) | flap fps (20) | max steps (12) | accent colour
 Glyphs    glyph pack (none)
 Sources   per-source enable | file path | remote URL | refresh mins | dwell secs | order
+Info      preset (Time / Weather / Time + Weather / Time then Weather / Now playing /
+          Custom) | template (Custom only)
 ```
 
 ## Distribution
@@ -330,6 +365,8 @@ Automated (`pytest` on Linux CI, no Kodi):
 - `flap` — stride maths, step-count bounds, op ordering, stagger, **settled board emits
   zero ops**
 - `sources` — JSON/text/comment parsing, malformed input, cache fallback chain
+- `template` — token substitution, `---` splitting, empty-token line drop, wholly-empty
+  screen skip, unknown token
 - `glyphs` — resolution order, codepoint naming, uppercase-closure invariant,
   pack-metrics warning
 - `glyphgen` — file count and codepoint naming; no pixel goldens
