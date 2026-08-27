@@ -2,7 +2,12 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# The add-on directory is an import root, not a package -- its name has dots
+# in it. Putting it on the path is what lets these tools import
+# `resources.lib.*` exactly as the add-on does at runtime.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
+sys.path.insert(0, os.path.join(_ROOT, "screensaver.splitflap"))
 
 from resources.lib.charset import bundled_charset
 from resources.lib.glyphgen import (

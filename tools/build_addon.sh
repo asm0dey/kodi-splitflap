@@ -43,12 +43,10 @@ for asset in icon.png fanart.jpg; do
 done
 cp -r "$SRC/resources" "build/staging/${ID}/"
 
-# The rendered glyph PNGs are derived from Nimbus Sans (AGPLv3 with font
-# exception); its licence must travel with them even though the .otf input
-# itself does not ship.
-mkdir -p "build/staging/${ID}/assets/fonts"
-cp assets/fonts/LICENSE-nimbus.txt assets/fonts/COPYING-nimbus.txt \
-   assets/fonts/README.md "build/staging/${ID}/assets/fonts/"
+# The font licences live inside the add-on now (its glyphs are derived from
+# Nimbus Sans, AGPLv3 with font exception), so they come along with
+# resources/ and assets/ rather than needing a special case here.
+cp -r "$SRC/assets" "build/staging/${ID}/" 2>/dev/null || true
 
 find "build/staging/${ID}" -name '__pycache__' -type d -exec rm -rf {} +
 find "build/staging/${ID}" -name '*.pyc' -delete
