@@ -3,10 +3,10 @@ name = "screensaver-splitflap"
 version = "0.1.0"
 description = "Split-flap board screensaver for Kodi"
 requires-python = ">=3.11"
-dependencies = [
-    "pillow>=11.1.0",
-    "pytest>=8.3.4",
-]
+# Zero runtime dependencies, deliberately: Kodi installs this as a plain
+# zip with no pip available. Pillow is build-time only (glyph rasterising)
+# and pytest is a test tool -- both belong in the dev extra, never here.
+dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest==8.3.4", "Pillow==11.1.0", "debugpy==1.8.11"]
