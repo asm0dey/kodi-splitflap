@@ -49,27 +49,22 @@ class Drum:
         distance exceeds max_steps the walk is sampled at a fixed stride so
         it still completes in at most max_steps flaps.
         """
-        # TODO(human): implement the stride-sampled forward walk.
-        #
-        # Contract the flap machine relies on:
-        #
-        #   d = Drum("0123456789")        # chars == (BLANK,'0','1',...,'9')
-        #   d.sequence("1", "2")   -> ("2",)          adjacent: one flap
-        #   d.sequence("B", "B")   -> ()              already there: no flaps
-        #   d.sequence("9", "0")   -> wraps the whole drum, len <= max_steps
-        #
-        # Rules:
-        #   * the LAST element is always exactly `target`, whatever the stride
-        #   * every element is a member of self.chars
-        #   * len(result) <= max_steps
-        #   * indices move forward only, wrapping modulo len(self.chars)
-        #   * an unknown `target` raises KeyError (use self._index[target])
-        #
-        # You already have distance() for the forward-wrapping gap. The step
-        # size is that distance spread over at most max_steps flaps -- and
-        # _ceil_div is there because a stride that rounds DOWN overshoots the
-        # target, while one that rounds up never does.
-        #
-        # The one to think about: with a stride > 1 the sampled indices will
-        # generally not land on target exactly. Decide how the walk ends.
-        raise NotImplementedError("Drum.sequence")
+        distance = self.distance(cur, target)
+        if distance == 0:
+            return ()
+
+        # Spread the gap over at most max_steps flaps, then work out how many
+        # flaps that stride actually needs. Rounding the stride UP is what
+        # keeps the walk from overshooting; rounding down would sail past the
+        # target and never land on it.
+        stride = _ceil_div(distance, max_steps)
+        steps = _ceil_div(distance, stride)
+
+        # The sampled indices generally skip over the target, so the walk stops
+        # one flap short and the target is placed explicitly. Under the cap the
+        # stride is 1, which makes this the plain contiguous walk.
+        start = self._pos(cur)
+        n = len(self.chars)
+        out = [self.chars[(start + k * stride) % n] for k in range(1, steps)]
+        out.append(target)
+        return tuple(out)
