@@ -119,3 +119,16 @@ def test_short_distances_are_contiguous_not_sampled():
     """Under the cap, every intermediate character is shown in order."""
     d = Drum("ABCDEFGHIJ ")
     assert d.sequence("A", "E") == ("B", "C", "D", "E")
+
+
+def test_max_steps_zero_raises_instead_of_dividing_by_zero():
+    """max_steps=0 must be rejected, not fall through to a ZeroDivisionError."""
+    d = Drum("ABC ")
+    with pytest.raises(ValueError):
+        d.sequence("A", "C", max_steps=0)
+
+
+def test_max_steps_negative_raises():
+    d = Drum("ABC ")
+    with pytest.raises(ValueError):
+        d.sequence("A", "C", max_steps=-1)

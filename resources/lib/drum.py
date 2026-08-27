@@ -49,14 +49,19 @@ class Drum:
         distance exceeds max_steps the walk is sampled at a fixed stride so
         it still completes in at most max_steps flaps.
         """
+        if max_steps < 1:
+            raise ValueError(f"max_steps must be at least 1, got {max_steps}")
+
         distance = self.distance(cur, target)
         if distance == 0:
             return ()
 
         # Spread the gap over at most max_steps flaps, then work out how many
-        # flaps that stride actually needs. Rounding the stride UP is what
-        # keeps the walk from overshooting; rounding down would sail past the
-        # target and never land on it.
+        # flaps that stride actually needs. The target is always appended
+        # explicitly below, so the walk lands on it regardless of rounding.
+        # Rounding the stride UP is what keeps `steps` within the max_steps
+        # cap: a smaller (floor-rounded) stride would need more hops to
+        # cover the same distance, so `steps` could exceed max_steps.
         stride = _ceil_div(distance, max_steps)
         steps = _ceil_div(distance, stride)
 
