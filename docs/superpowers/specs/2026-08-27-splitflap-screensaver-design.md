@@ -180,10 +180,12 @@ cycle. Hardware never mixed accented capitals into the letter drum.
 
 This makes stride sampling visible rather than cosmetic: a real 40-flap revolution shows
 40 contiguous characters, while 12 steps across 145 shows every ~12th, which reads as
-scrambling rather than a drum spinning through the alphabet. `MAX_STEPS` and step
-duration are therefore **tuning constants, not derived values** — 12 steps at 100ms
-reads fast and scrambly, ~20 at 50ms reads closer to a real spin for the same wall time.
-Settle them on a TV during the spike.
+scrambling rather than a drum spinning through the alphabet. `MAX_STEPS` is therefore a
+**tuning constant, not a derived value** — raising it toward 40 buys contiguity at 200ms
+each, so the trade is directly wall-clock time. Settle it on a TV during the spike.
+
+Note that a physically accurate cell mixes the two: hardware is slower per step *and*
+shows every character. We take its step rate and drop its step count.
 
 ### Flap sequence
 
@@ -208,9 +210,22 @@ step k:  top    <- sequence[k+1]     (card face swings down)
 
 The transient mismatch between halves *is* the hinge effect.
 
-**Timing.** One half-step per frame at `flap_fps`, so a step is two frames — 100ms at
-the default 20fps. A single-step flap (`'1'` -> `'2'`, adjacent in the drum) takes 100ms;
-the `MAX_STEPS` ceiling bounds the worst case at **1.2s**.
+**Timing.** A step is one character advance — one card falling — rendered as two
+half-steps (top lands, then bottom). Real Solari modules run at a reported **5 flaps per
+second, i.e. 200ms per character**, so a 40-flap revolution takes about 8 seconds.
+
+We keep the hardware step rate and clamp the count instead:
+
+| | real hardware | here |
+|---|---|---|
+| one character step | 200ms | **200ms** |
+| full revolution | 8s (40 flaps) | **2.4s** (12 steps, clamped) |
+
+A single-character change (`'1'` -> `'2'`, adjacent in the drum) therefore takes 200ms
+and looks exactly like hardware — and that is the case on screen constantly, once per
+clock tick. Only a full wrap is stylised, because a clock whose minutes digit takes
+eight seconds to roll over is a broken clock. Fidelity where it shows, brevity only
+where fidelity would hurt.
 
 **Forward-only motion has a visible consequence.** The drum cannot reverse, so a target
 whose codepoint is *below* the current one wraps the whole drum. `'9'` -> `'0'` is the
@@ -532,8 +547,8 @@ Manual only (platform-bound, cannot run in CI): window construction, control cou
 Roughly one hour. Any outcome moves a constant; none invalidates the structure.
 
 0. **Flap feel** — watch a full-drum wrap (`'9'` -> `'0'`) on a TV and settle
-   `MAX_STEPS` and step duration. Not a correctness question; the only one here that
-   cannot be answered from a desk.
+   `MAX_STEPS` against the fixed 200ms step. Not a correctness question; the only one
+   here that cannot be answered from a desk.
 1. **Exit contract** — which of `onAction`, `System.ScreenSaverActive`, or
    `abortRequested` actually fires for a Python screensaver, and in what order.
 2. **Control budget** — 264 controls on a Fire TV Stick 4K: window init time, memory,
