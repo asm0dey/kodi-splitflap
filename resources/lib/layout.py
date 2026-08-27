@@ -90,21 +90,17 @@ def _wrap(text: str, cols: int) -> list[str]:
         return []
     items: list[str] = text.split()
     result: list[str] = []
-    was_split = False
-    while len(items) != 0:
+    while items:
+        was_split = False
         cur_item = items.pop(0)
         while len(cur_item) > cols:
             was_split = True
-            result.append(cur_item[0:cols])
+            result.append(cur_item[:cols])
             cur_item = cur_item[cols:]
-        if was_split:
-            result.append(cur_item)
-        else:
-            while not (len(items) == 0 or len(f"{cur_item} {items[0]}") > cols):
+        if not was_split:
+            while items and len(f"{cur_item} {items[0]}") <= cols:
                 cur_item = f"{cur_item} {items.pop(0)}"
-            result.append(cur_item)
-
-        was_split = False
+        result.append(cur_item)
     return result
 
 
