@@ -2,6 +2,7 @@
 build/
 dist/
 .idea/
+*.egg-info/
 # JetBrains
 mutants/
 .mutmut-cache
