@@ -144,3 +144,22 @@ by hand on a device — see `docs/superpowers/spikes/`.
 
 GPL-2.0-or-later. Bundled glyphs are rendered from Nimbus Sans (AGPLv3 with
 font exception) — see `assets/fonts/LICENSE-nimbus.txt`.
+
+## Reinstalling during development
+
+Kodi refuses an install-from-zip whose version is not newer than the one
+already installed, so a rebuilt zip at the same version silently fails to
+install. Either bump `version` in `addon.xml` before packaging, or remove the
+add-on first:
+
+```bash
+# bump, then rebuild
+./tools/build_addon.sh
+
+# or, to reinstall the same version
+rm -rf ~/.kodi/addons/screensaver.splitflap    # desktop
+adb shell pm clear org.xbmc.kodi               # Fire TV: nuclear, wipes settings
+```
+
+On a Fire TV the gentler route is Settings → Add-ons → My add-ons →
+Screensavers → Split-Flap Board → Uninstall, then install the new zip.
