@@ -3,7 +3,10 @@ name = "screensaver-splitflap"
 version = "0.1.0"
 description = "Split-flap board screensaver for Kodi"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pillow>=11.1.0",
+    "pytest>=8.3.4",
+]
 
 [project.optional-dependencies]
 dev = ["pytest==8.3.4", "Pillow==11.1.0", "debugpy==1.8.11"]
