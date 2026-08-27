@@ -297,18 +297,29 @@ separates screens.
 {Weather.Temperature} {Weather.Conditions}
 ```
 
-Settings exposes a **preset dropdown** that fills the template, plus the raw field for
-custom use — editing a template with a TV remote is miserable, so the presets are the
-real interface:
+**The template is never user-facing.** Text entry with a d-pad is unusable, and a fixed
+preset list gets outgrown the moment someone wants a combination it does not contain.
+The interface is checkboxes; the toggles compose a template internally:
 
-| preset | screens |
-|---|---|
-| Time | `{System.Time}` |
-| Weather | location, then temperature + conditions |
-| Time + Weather | both on one board |
-| Time, then Weather | two screens, alternating |
-| Now playing | `{MusicPlayer.Artist}` / `{MusicPlayer.Title}` |
-| Custom | raw template field |
+```
+Info
+  [x] Time
+  [ ] Date
+  [x] Weather
+  [ ] Now playing
+  Combine:  (o) One board    ( ) Separate boards, rotating
+```
+
+"Time only", "weather only", and "time + weather" are tick-box states, not presets.
+`Combine` decides whether enabled items join one board or rotate as separate screens —
+i.e. whether the composed template contains `---`.
+
+Custom templates live in **Advanced** as a file path (blank = use the toggles), beside
+the phrases file. Desktop users get full generality — any Kodi infolabel, PVR or free
+disk space included — and nobody types anything on a remote.
+
+`template.py` remains the engine: the empty-token rule and screen splitting are exactly
+what the toggles need, and keeping it pure keeps it testable.
 
 **Empty-token rule** (generalises what was previously per-source auto-disable): a token
 resolving empty drops its line; a screen resolving wholly empty is skipped. So an
@@ -346,8 +357,9 @@ generation fixes it. Real split-flap hardware has the same limitation.
 Board     columns (22) | text rows (3) | flap fps (20) | max steps (12) | accent colour
 Glyphs    glyph pack (none)
 Sources   per-source enable | file path | remote URL | refresh mins | dwell secs | order
-Info      preset (Time / Weather / Time + Weather / Time then Weather / Now playing /
-          Custom) | template (Custom only)
+Info      time | date | weather | now playing (checkboxes) | combine (one board /
+          separate boards)
+Advanced  template file path (blank = compose from the checkboxes)
 ```
 
 ## Distribution
@@ -366,7 +378,8 @@ Automated (`pytest` on Linux CI, no Kodi):
   zero ops**
 - `sources` — JSON/text/comment parsing, malformed input, cache fallback chain
 - `template` — token substitution, `---` splitting, empty-token line drop, wholly-empty
-  screen skip, unknown token
+  screen skip, unknown token, **checkbox state -> composed template** for every
+  combination incl. none-ticked
 - `glyphs` — resolution order, codepoint naming, uppercase-closure invariant,
   pack-metrics warning
 - `glyphgen` — file count and codepoint naming; no pixel goldens
