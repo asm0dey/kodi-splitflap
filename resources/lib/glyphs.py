@@ -5,6 +5,7 @@ tofu. Tofu is bundled like any other glyph, so the fallback can never
 itself be missing -- if it is, that is a packaging bug and we say so
 loudly rather than recursing.
 """
+import json
 from collections.abc import Callable, Iterable
 
 from .charset import TOFU
@@ -70,3 +71,39 @@ class GlyphIndex:
             if self._find(ch, "top") and self._find(ch, "bottom"):
                 out.add(ch)
         return out
+
+
+def pack_letterset(
+    pack_dir: str, read: Callable[[str], str | None]
+) -> tuple[tuple[str, ...], str | None]:
+    """Read a glyph pack's declared letterset from its `pack.json`.
+
+    A pack can ADD characters the bundled set doesn't cover (e.g. Cyrillic),
+    but only characters actually offered as CANDIDATES ever reach
+    `GlyphIndex.charset` -- the search dirs alone don't widen what's probed
+    for. This is what supplies those extra candidates.
+
+    `read` mirrors how `exists` is injected into `GlyphIndex`: the caller
+    supplies the file-reading side effect, this stays pure and testable.
+    It must return the file's text, or None if the path doesn't exist.
+
+    Returns `(chars, warning)`. On success `warning` is None. On a missing
+    or malformed `pack.json`, `chars` is empty (the caller's own candidate
+    set -- the bundled charset -- is untouched) and `warning` describes
+    what went wrong, for the caller to log; this function has no logging
+    channel of its own.
+    """
+    path = f"{pack_dir}/pack.json"
+    text = read(path)
+    if text is None:
+        return (), f"no pack.json found at {path}"
+    try:
+        data = json.loads(text)
+        chars = data["chars"]
+        if not isinstance(chars, str):
+            raise TypeError(
+                f"'chars' must be a string, got {type(chars).__name__}"
+            )
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        return (), f"malformed pack.json at {path}: {exc}"
+    return tuple(chars), None

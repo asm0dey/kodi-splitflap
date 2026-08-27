@@ -1,5 +1,7 @@
+import json
+
 from resources.lib.charset import TOFU
-from resources.lib.glyphs import GlyphIndex, glyph_dirs
+from resources.lib.glyphs import GlyphIndex, glyph_dirs, pack_letterset
 
 
 def fake_fs(*present):
@@ -84,3 +86,68 @@ def test_glyph_dirs_with_pack_orders_profile_pack_then_bundled():
         "resource://resource.images.splitflap.deco",
         "addon/resources/media/glyphs",
     ]
+
+
+def _reader(**files):
+    """files: path -> text. Missing paths read as None, like a real VFS."""
+    return lambda path: files.get(path)
+
+
+def test_pack_letterset_reads_chars_from_pack_json():
+    letterset = "АБВ"
+    read = _reader(**{
+        "pack/pack.json": json.dumps({"chars": letterset}),
+    })
+    chars, warning = pack_letterset("pack", read)
+    assert chars == tuple(letterset)
+    assert warning is None
+
+
+def test_pack_letterset_missing_file_degrades_with_warning():
+    chars, warning = pack_letterset("pack", _reader())
+    assert chars == ()
+    assert warning is not None
+    assert "pack.json" in warning
+
+
+def test_pack_letterset_malformed_json_degrades_with_warning():
+    read = _reader(**{"pack/pack.json": "{not json"})
+    chars, warning = pack_letterset("pack", read)
+    assert chars == ()
+    assert warning is not None
+
+
+def test_pack_letterset_missing_chars_key_degrades_with_warning():
+    read = _reader(**{"pack/pack.json": json.dumps({"font": "x.otf"})})
+    chars, warning = pack_letterset("pack", read)
+    assert chars == ()
+    assert warning is not None
+
+
+def test_pack_letterset_non_string_chars_degrades_with_warning():
+    read = _reader(**{"pack/pack.json": json.dumps({"chars": 123})})
+    chars, warning = pack_letterset("pack", read)
+    assert chars == ()
+    assert warning is not None
+
+
+def test_pack_contributed_characters_become_available_through_charset():
+    """End-to-end: a pack's letterset (outside the bundle) reaches
+    GlyphIndex.charset only once its characters are added to the
+    candidate set -- glyph files existing in the pack dir alone are not
+    enough, since charset() only probes what it's given as candidates.
+    """
+    read = _reader(**{"pack/pack.json": json.dumps({"chars": "АБВ"})})
+    pack_chars, warning = pack_letterset("pack", read)
+    assert warning is None
+    cyr = pack_chars[0]   # Cyrillic capital A, U+0410
+
+    exists = fake_fs(("pack", "t_0410.png"), ("pack", "b_0410.png"))
+    idx = GlyphIndex(["pack"], exists)
+
+    bundled_only = idx.charset("AB")   # neither glyph exists in "pack"
+    assert cyr not in bundled_only
+
+    candidates = set("AB") | set(pack_chars)
+    with_pack = idx.charset(candidates)
+    assert cyr in with_pack

@@ -18,7 +18,7 @@ from resources.lib.charset import bundled_charset
 from resources.lib.drum import Drum
 from resources.lib.flap import FlapMachine
 from resources.lib.geometry import compute
-from resources.lib.glyphs import GlyphIndex, glyph_dirs
+from resources.lib.glyphs import GlyphIndex, glyph_dirs, pack_letterset
 from resources.lib.layout import build as build_board
 from resources.lib.rotator import Rotator
 from resources.lib.sources.liveinfo import LiveInfoSource
@@ -55,6 +55,19 @@ def _read_text(path: str) -> str:
     # only Kodi's own VFS (not the local libc open()) can read those.
     if not xbmcvfs.exists(path):
         return ""
+    with xbmcvfs.File(path) as handle:
+        return handle.read()
+
+
+def _read_pack_text(path: str) -> str | None:
+    """VFS text reader for `glyphs.pack_letterset`.
+
+    Returns None on a missing file, matching that function's contract --
+    it stays pure and Kodi-free, this is the Kodi-touching side effect
+    injected into it (same pattern as `_read_text` above).
+    """
+    if not xbmcvfs.exists(path):
+        return None
     with xbmcvfs.File(path) as handle:
         return handle.read()
 
@@ -104,8 +117,24 @@ class Screensaver(xbmcgui.WindowXMLDialog):
             cfg = self._cfg
             geo = compute(rows=cfg["rows"])
             dirs = glyph_dirs(cfg["profile"], cfg["addon_path"], cfg["glyph_pack"])
+
+            # Only characters offered as CANDIDATES ever reach the drum --
+            # a pack's glyph files existing on disk isn't enough on its own
+            # (GlyphIndex.charset only probes what it's given). A pack can
+            # ADD characters the bundle doesn't cover (e.g. Cyrillic), so
+            # its declared letterset must be unioned in here.
+            candidates = set(bundled_charset())
+            pack = cfg["glyph_pack"]
+            if pack:
+                pack_chars, warning = pack_letterset(
+                    f"resource://{pack}", _read_pack_text
+                )
+                if warning:
+                    log(f"glyph pack {pack!r} letterset unavailable: {warning}")
+                candidates.update(pack_chars)
+
             index = GlyphIndex(dirs, xbmcvfs.exists)
-            available = index.charset(bundled_charset())
+            available = index.charset(candidates)
             drum = Drum(available)
 
             self._geo = geo
