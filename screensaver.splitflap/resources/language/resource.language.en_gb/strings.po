@@ -86,3 +86,19 @@ msgstr ""
 msgctxt "#30050"
 msgid "Glyph pack add-on id (blank for bundled)"
 msgstr ""
+
+msgctxt "#30025"
+msgid "Source add-on"
+msgstr ""
+
+msgctxt "#30026"
+msgid "Configure source add-on"
+msgstr ""
+
+msgctxt "#30027"
+msgid "No source add-ons installed"
+msgstr ""
+
+msgctxt "#30028"
+msgid "Pick a source add-on first"
+msgstr ""

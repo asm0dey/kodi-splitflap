@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="screensaver.splitflap" name="Split-Flap Board" version="0.1.7" provider-name="finkel">
+<addon id="screensaver.splitflap" name="Split-Flap Board" version="0.1.10" provider-name="finkel">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
   <extension point="xbmc.ui.screensaver" library="default.py"/>
+  <extension point="xbmc.python.script" library="chooser.py"/>
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">A mechanical split-flap departure board</summary>
     <description lang="en_GB">Renders a Solari-style split-flap board showing phrases, the time, and the weather. Characters flap through the drum exactly as the hardware does.</description>

@@ -75,6 +75,7 @@ def test_source_specific_settings_are_hidden_for_other_sources():
     """
     expected = {
         "source_addon_id": "contributor",
+        "configure_source": "contributor",
         "info_time": "liveinfo",
         "info_date": "liveinfo",
         "info_weather": "liveinfo",

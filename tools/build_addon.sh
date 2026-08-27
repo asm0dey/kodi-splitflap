@@ -32,7 +32,7 @@ mkdir -p "build/staging/${ID}" build
 # (build-time input to glyphgen.py only), mutants/, .venv/, __pycache__,
 # .zed/, setup.cfg, pyrightconfig.json, uv.lock, pyproject.toml.
 SRC="screensaver.splitflap"
-cp "$SRC/addon.xml" "$SRC/default.py" "build/staging/${ID}/"
+cp "$SRC/addon.xml" "$SRC/default.py" "$SRC/chooser.py" "build/staging/${ID}/"
 cp LICENSE "build/staging/${ID}/" 2>/dev/null || true
 for asset in icon.png fanart.jpg; do
   if [ -f "$SRC/$asset" ]; then
