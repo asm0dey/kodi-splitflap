@@ -154,7 +154,7 @@ def render_glyphs(
     chars: Iterable[str], font_path: str, out_dir: str, half_w: int, half_h: int
 ) -> list[str]:
     """Render each character as a top and a bottom half. Returns filenames."""
-    from PIL import ImageDraw, ImageFont
+    from PIL import Image, ImageDraw, ImageFont
 
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
@@ -167,12 +167,13 @@ def render_glyphs(
     # cap height, so the final size can land well under the 55% target).
     size = _fit_font_size(font_path, full_h, half_w, chars)
     font = ImageFont.truetype(font_path, size)
+    baseline = _baseline_y(ImageDraw.Draw(Image.new("L", (1, 1))), font, full_h)
 
     written = []
     for ch in chars:
         card = _shaded_card(half_w, half_h, full_h)
         draw = ImageDraw.Draw(card)
-        _draw_centred(draw, ch, font, half_w, full_h)
+        _draw_baselined(draw, ch, font, half_w, baseline)
         draw.line([(0, half_h - 1), (half_w, half_h - 1)], fill=HINGE_VALUE, width=2)
 
         for half, box in (
@@ -280,8 +281,24 @@ def _fit_font_size(font_path: str, full_h: int, half_w: int,
     return size
 
 
-def _draw_centred(draw, ch: str, font, w: int, h: int) -> None:
+def _baseline_y(draw, font, h: int) -> float:
+    """The one baseline every glyph in a set sits on.
+
+    Derived from a capital H, so the cap height -- not any one glyph's ink
+    -- is what gets centred on the card.
+    """
+    box = draw.textbbox((0, 0), "H", font=font)
+    return (h - (box[3] - box[1])) / 2.0 - box[1]
+
+
+def _draw_baselined(draw, ch: str, font, w: int, y: float) -> None:
+    """Centre a glyph horizontally, but sit it on the set's shared baseline.
+
+    Centring each glyph's own ink box vertically instead would float a
+    comma, a full stop, or a hyphen in the middle of the card, straddling
+    the hinge -- on a real board they hang at the baseline like everything
+    else.
+    """
     box = draw.textbbox((0, 0), ch, font=font)
     x = (w - (box[2] - box[0])) / 2.0 - box[0]
-    y = (h - (box[3] - box[1])) / 2.0 - box[1]
     draw.text((x, y), ch, fill=LETTER_VALUE, font=font)

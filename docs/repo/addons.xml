@@ -17,7 +17,7 @@
       <icon>icon.png</icon>
     </assets>
   </extension>
-</addon><addon id="resource.images.splitflap.nimbus-ru" name="Split-Flap - Nimbus, Latin + Cyrillic" version="1.0.0" provider-name="splitflap">
+</addon><addon id="resource.images.splitflap.nimbus-ru" name="Split-Flap - Nimbus, Latin + Cyrillic" version="1.0.1" provider-name="splitflap">
   <requires>
     <import addon="kodi.resource" version="1.0.0" />
   </requires>
@@ -27,7 +27,7 @@
     <description lang="en_GB">Split-Flap - Nimbus, Latin + Cyrillic</description>
     <platform>all</platform>
   </extension>
-</addon><addon id="screensaver.splitflap" name="Split-Flap Board" version="0.1.11" provider-name="finkel">
+</addon><addon id="screensaver.splitflap" name="Split-Flap Board" version="0.1.12" provider-name="finkel">
   <requires>
     <import addon="xbmc.python" version="3.0.0" />
   </requires>

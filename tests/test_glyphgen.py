@@ -106,3 +106,22 @@ def test_each_half_is_top_lit(tmp_path):
         rows = [sum(top.crop((0, y, top.width, y + 1)).getdata())
                 for y in (0, top.height // 2, top.height - 2)]
     assert rows[0] > rows[1] > rows[2], f"not top-lit: {rows}"
+
+
+def test_descender_punctuation_sits_below_the_hinge(tmp_path):
+    """A comma hangs at the baseline, not floating in the card's middle.
+
+    Centring each glyph's own ink box vertically -- rather than sitting the
+    whole set on one baseline -- puts a comma's ink dead centre on the
+    card, straddling the hinge. On a real board it hangs under the
+    baseline, which is below the seam, so the top half carries no ink.
+    """
+    from PIL import Image
+    render_glyphs("H,", FONT, str(tmp_path), 78, 71)
+    with Image.open(os.path.join(str(tmp_path), "t_002c.png")) as im:
+        top_max = max(im.crop((0, 0, im.width, im.height - 1)).getdata())
+    with Image.open(os.path.join(str(tmp_path), "b_002c.png")) as im:
+        bottom_max = max(im.crop((0, 1, im.width, im.height)).getdata())
+    # The card and its shading never reach the letterform's brightness.
+    assert bottom_max > 200, "the comma should be drawn in the bottom half"
+    assert top_max < 200, "the comma should not reach into the top half"
