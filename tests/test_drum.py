@@ -1,7 +1,6 @@
 import itertools
 
 import pytest
-
 from resources.lib.charset import BLANK
 from resources.lib.drum import MAX_STEPS, Drum
 

@@ -1,7 +1,6 @@
 import os
 
 import pytest
-
 from resources.lib.glyphgen import glyph_filename, render_glyphs
 
 PIL = pytest.importorskip("PIL")

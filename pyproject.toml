@@ -38,7 +38,7 @@ select = ["E", "F", "I", "UP", "RUF", "FURB"]
 [tool.ruff.lint.per-file-ignores]
 # charset.py names curly quotes, the ellipsis and accented capitals on purpose --
 # they are the glyph set. "Ambiguous unicode" is the whole point of the file.
-"resources/lib/charset.py" = ["RUF001", "RUF003"]
+"screensaver.splitflap/resources/lib/charset.py" = ["RUF001", "RUF003"]
 # Asserts literal Cyrillic/Greek characters to prove charset_for() resolved
 # the right script -- the "ambiguous unicode" is the thing under test.
 "tests/test_make_glyph_pack.py" = ["RUF001"]

@@ -1,5 +1,4 @@
 import pytest
-
 from resources.lib.geometry import BOARD_ASPECT, CELL_ASPECT, compute
 
 
