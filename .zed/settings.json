@@ -1,0 +1,26 @@
+{
+  "languages": {
+    "Python": {
+      "format_on_save": "off"
+    }
+  },
+  "lsp": {
+    "basedpyright": {
+      "settings": {
+        "basedpyright.analysis": {
+          "diagnosticMode": "workspace",
+          "typeCheckingMode": "standard",
+          "extraPaths": ["."]
+        }
+      }
+    },
+    "pyright": {
+      "settings": {
+        "python": {
+          "pythonPath": ".venv/bin/python",
+          "analysis": { "extraPaths": ["."], "typeCheckingMode": "standard" }
+        }
+      }
+    }
+  }
+}

@@ -36,7 +36,7 @@ def test_uppercase_closure_per_character():
     cs = set(bundled_charset())
     for c in cs:
         for out in c.upper():
-            assert out in cs, "%r uppercases to %r which is not bundled" % (c, out)
+            assert out in cs, f"{c!r} uppercases to {out!r} which is not bundled"
 
 
 def test_no_duplicates():
@@ -46,7 +46,7 @@ def test_no_duplicates():
 
 def test_every_entry_is_a_single_character():
     for ch in bundled_charset():
-        assert len(ch) == 1, "%r is %d characters, not 1" % (ch, len(ch))
+        assert len(ch) == 1, f"{ch!r} is {len(ch)} characters, not 1"
 
 
 def test_contains_curly_quotes():

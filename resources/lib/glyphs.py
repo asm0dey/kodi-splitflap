@@ -31,7 +31,8 @@ class GlyphIndex:
         fallback = self._find(TOFU, half)
         if fallback is None:
             raise LookupError(
-                f"tofu glyph {TOFU!r} is missing from every search dir {self._dirs!r} -- "
+                f"tofu glyph {TOFU!r} is missing from every search dir "
+                f"{self._dirs!r} -- "
                 "the bundled set is incomplete"
             )
         return fallback

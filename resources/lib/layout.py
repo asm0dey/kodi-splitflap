@@ -33,7 +33,7 @@ def build(lines: list[str] | tuple[str, ...],
     for line in upper:
         line_start.append(len(wrapped))
         pieces = _wrap(line, cols)
-        wrapped.extend(pieces if pieces else [""])
+        wrapped.extend(pieces or [""])
 
     # 5. Overflow ellipsises rather than paginating -- but only when text is
     #    genuinely lost. Merging the tail into one row often makes it fit, and
@@ -46,7 +46,7 @@ def build(lines: list[str] | tuple[str, ...],
             truncated = True          # hard-fills the row, ellipsis in the last cell
         else:
             last = remainder          # everything survived; centre it normally
-        wrapped = wrapped[:rows - 1] + [last]
+        wrapped = [*wrapped[:rows - 1], last]
 
     # 4. Size the block to its line count and centre it vertically.
     top = (rows - len(wrapped)) // 2

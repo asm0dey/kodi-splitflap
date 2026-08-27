@@ -31,7 +31,7 @@ class PaintOp(NamedTuple):
 
 
 class _Cell:
-    __slots__ = ("char", "seq", "step", "phase", "start_ms")
+    __slots__ = ("char", "phase", "seq", "start_ms", "step")
 
     def __init__(self, char: str) -> None:
         self.char = char

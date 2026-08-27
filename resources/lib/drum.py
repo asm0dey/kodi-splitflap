@@ -24,7 +24,7 @@ def _ceil_div(a: int, b: int) -> int:
 class Drum:
     def __init__(self, charset: Iterable[str]) -> None:
         rest = sorted(set(charset) - {BLANK})
-        self.chars: tuple[str, ...] = (BLANK,) + tuple(rest)
+        self.chars: tuple[str, ...] = (BLANK, *tuple(rest))
         self._index: dict[str, int] = {c: i for i, c in enumerate(self.chars)}
 
     def _pos(self, ch: str) -> int:

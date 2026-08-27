@@ -17,7 +17,7 @@ HINGE_VALUE = 8         # the seam between halves
 
 def glyph_filename(ch: str, half: str) -> str:
     prefix = "t" if half == "top" else "b"
-    return "%s_%04x.png" % (prefix, ord(ch))
+    return f"{prefix}_{ord(ch):04x}.png"
 
 
 def render_glyphs(
@@ -55,7 +55,8 @@ def render_glyphs(
     return written
 
 
-def _fit_font_size(font_path: str, full_h: int, half_w: int, chars: Iterable[str]) -> int:
+def _fit_font_size(font_path: str, full_h: int, half_w: int,
+                   chars: Iterable[str]) -> int:
     from PIL import ImageFont
 
     target = int(full_h * 0.55)

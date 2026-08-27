@@ -12,8 +12,8 @@ from collections.abc import Sequence
 from typing import Any
 
 
-class Content(object):
-    __slots__ = ("lines", "accents", "refresh_in")
+class Content:
+    __slots__ = ("accents", "lines", "refresh_in")
 
     def __init__(
         self,
@@ -32,16 +32,21 @@ class Content(object):
             and self.accents == other.accents
         )
 
-    def __ne__(self, other: object) -> bool:
-        return not self.__eq__(other)
+    def __hash__(self) -> int:
+        """Kept consistent with __eq__, which ignores refresh_in.
+
+        Defining __eq__ without __hash__ silently makes the class
+        unhashable, so a caller putting Content in a set or dict would get
+        a TypeError far from the cause.
+        """
+        return hash((self.lines, self.accents))
 
     def __repr__(self) -> str:
-        return "Content(lines=%r, accents=%r, refresh_in=%r)" % (
-            self.lines, self.accents, self.refresh_in
-        )
+        return (f"Content(lines={self.lines!r}, accents={self.accents!r}, "
+                f"refresh_in={self.refresh_in!r})")
 
 
-class Source(object):
+class Source:
     """Duck-typed base. Subclasses set id and implement next()."""
 
     id = "source"

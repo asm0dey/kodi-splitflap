@@ -9,7 +9,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest==8.3.4", "Pillow==11.1.0", "debugpy==1.8.11"]
+dev = ["pytest==8.3.4", "Pillow==11.1.0", "debugpy==1.8.11", "ruff==0.9.6"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -23,3 +23,17 @@ include = ["resources", "tools", "tests"]
 # Kodi 21 (Omega) ships 3.11 and it is the floor; pinning it here makes the
 # editor enforce the same constraint CI does.
 pythonVersion = "3.11"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+# E/F are the defaults; I sorts imports, UP modernises syntax left over from
+# the 3.8 floor this project started on, RUF and FURB catch idiom drift.
+select = ["E", "F", "I", "UP", "RUF", "FURB"]
+
+[tool.ruff.lint.per-file-ignores]
+# charset.py names curly quotes, the ellipsis and accented capitals on purpose --
+# they are the glyph set. "Ambiguous unicode" is the whole point of the file.
+"resources/lib/charset.py" = ["RUF001", "RUF003"]

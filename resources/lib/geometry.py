@@ -14,7 +14,8 @@ SKIN_H = 1080
 
 
 class Geometry:
-    def __init__(self, rows: int, cols: int, tile_w: int, tile_h: int, gap: int, origin_x: int, origin_y: int) -> None:
+    def __init__(self, rows: int, cols: int, tile_w: int, tile_h: int,
+                 gap: int, origin_x: int, origin_y: int) -> None:
         self.rows = rows
         self.cols = cols
         self.tile_w = tile_w
@@ -37,11 +38,12 @@ class Geometry:
         return (x, y + top_h, self.tile_w, self.tile_h - top_h)
 
 
-def compute(rows: int, skin_w: int = SKIN_W, skin_h: int = SKIN_H, margin_pct: float = 0.02, gap: int = 6) -> Geometry:
+def compute(rows: int, skin_w: int = SKIN_W, skin_h: int = SKIN_H,
+            margin_pct: float = 0.02, gap: int = 6) -> Geometry:
     if rows < 1:
-        raise ValueError("rows must be >= 1, got %r" % (rows,))
+        raise ValueError(f"rows must be >= 1, got {rows!r}")
 
-    cols = int(round(rows * BOARD_ASPECT / CELL_ASPECT))
+    cols = round(rows * BOARD_ASPECT / CELL_ASPECT)
     cols = max(1, cols)
 
     margin_x = int(skin_w * margin_pct)

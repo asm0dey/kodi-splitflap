@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 
 from resources.lib.charset import BLANK
@@ -100,7 +102,7 @@ def test_no_step_repeats_the_previous_one():
     """A flap that shows the same character twice is a dropped frame."""
     d = Drum("".join(chr(c) for c in range(0x41, 0x41 + 100)))
     seq = d.sequence("B", "A")
-    assert all(a != b for a, b in zip(seq, seq[1:]))
+    assert all(a != b for a, b in itertools.pairwise(seq))
 
 
 def test_unknown_character_is_treated_as_blank():

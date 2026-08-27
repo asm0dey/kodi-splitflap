@@ -10,13 +10,13 @@ def test_no_runtime_dependencies_are_declared():
     managers add entries here silently, so this is checked rather than
     trusted.
     """
-    import re
     import pathlib
+    import re
     text = pathlib.Path("pyproject.toml").read_text(encoding="utf-8")
-    block = re.search(r"^dependencies\s*=\s*(\[[^\]]*\])", text, re.M)
+    block = re.search(r"^dependencies\s*=\s*(\[[^\]]*\])", text, re.MULTILINE)
     assert block, "dependencies key missing from pyproject.toml"
     assert block.group(1).strip() == "[]", (
-        "runtime dependencies must stay empty, found %s" % block.group(1)
+        f"runtime dependencies must stay empty, found {block.group(1)}"
     )
 
 
@@ -40,10 +40,11 @@ def test_lockfile_also_declares_no_runtime_dependencies():
         pytest.skip("uv.lock not present in this checkout")
 
     data = tomllib.loads(lock_path.read_text(encoding="utf-8"))
-    packages = [p for p in data.get("package", []) if p.get("name") == "screensaver-splitflap"]
+    packages = [p for p in data.get("package", [])
+                if p.get("name") == "screensaver-splitflap"]
     assert packages, "screensaver-splitflap entry missing from uv.lock"
     pkg = packages[0]
     assert pkg.get("dependencies", []) == [], (
-        "uv.lock declares runtime dependencies for screensaver-splitflap: %r"
-        % (pkg.get("dependencies"),)
+        "uv.lock declares runtime dependencies for "
+        f"screensaver-splitflap: {pkg.get('dependencies')!r}"
     )

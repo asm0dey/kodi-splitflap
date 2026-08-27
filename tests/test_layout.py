@@ -43,7 +43,7 @@ def test_wrapped_lines_never_start_with_a_space():
     """A line built by joining words must not inherit a leading separator."""
     from resources.lib.layout import _wrap
     for line in _wrap("THE ONLY WAY OUT IS THROUGH", 12):
-        assert line == line.lstrip(), "leading space in %r" % (line,)
+        assert line == line.lstrip(), f"leading space in {line!r}"
 
 
 def test_words_after_a_full_line_still_wrap_on_words():
