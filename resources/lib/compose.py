@@ -11,7 +11,7 @@ from typing import Any
 
 from .sources.base import Content
 
-WEATHER_REFRESH_S = 900.0
+STATIC_REFRESH_S = 900.0
 
 
 def seconds_to_next_minute(now_seconds: float) -> float:
@@ -86,7 +86,7 @@ def _to_content(sections: Sequence[dict[str, Any]], now_seconds: float) -> Conte
         ticks = ticks or section["ticks"]
     if not lines:
         return Content()
-    refresh = seconds_to_next_minute(now_seconds) if ticks else WEATHER_REFRESH_S
+    refresh = seconds_to_next_minute(now_seconds) if ticks else STATIC_REFRESH_S
     return Content(lines=lines, accents=accents, refresh_in=refresh)
 
 

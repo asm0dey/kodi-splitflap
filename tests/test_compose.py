@@ -90,3 +90,38 @@ def test_seconds_to_next_minute():
     assert seconds_to_next_minute(0.0) == 60.0
     assert seconds_to_next_minute(59.0) == 1.0
     assert seconds_to_next_minute(120.5) == 59.5
+
+
+def test_combined_time_and_weather_refresh_is_minute_derived():
+    """Verify that time+weather combined board gets minute-level refresh.
+
+    This pins the `ticks = ticks or section["ticks"]` fold, which ORs across
+    sections. Without this OR, refactoring to `ticks = section["ticks"]`
+    would silently change the refresh to 900s (STATIC_REFRESH_S), making
+    the clock update every 15 minutes instead of every minute -- visibly
+    broken but undetected without this assertion.
+    """
+    from resources.lib.compose import STATIC_REFRESH_S
+
+    boards = compose(flags(time=True, weather=True), VALUES, combine=True)
+    assert len(boards) == 1
+    assert boards[0].refresh_in is not None
+    # Must be minute-derived (0 < x <= 60), NOT STATIC_REFRESH_S
+    assert 0 < boards[0].refresh_in <= 60
+    assert boards[0].refresh_in != STATIC_REFRESH_S
+
+
+def test_accent_index_shifts_in_combined_board():
+    """Verify accent arithmetic when weather section follows time section.
+
+    _to_content computes `{"before_line": len(lines) + len(kept) - 1}`,
+    offsetting by accumulated lines. The time section contributes 1 line,
+    so the weather accent should land at index 2 (weather's last line),
+    not index 1.
+    """
+    boards = compose(flags(time=True, weather=True), VALUES, combine=True)
+    assert len(boards) == 1
+    # Time accent at index 0 (time is the only line in its section)
+    assert {"before_line": 0} in boards[0].accents
+    # Weather accent at index 2 (time line + weather's two lines - 1)
+    assert {"before_line": 2} in boards[0].accents
