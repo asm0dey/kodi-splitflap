@@ -93,10 +93,28 @@ class FlapMachine:
             for c, target in enumerate(row):
                 idx = r * self._cols + c
                 cell = self._cells[idx]
-                seq = self._drum.sequence(cell.char, target, self._max_steps)
+                # cell.char only updates when the BOTTOM half lands. In the
+                # hinge state (phase 1: top landed, bottom still pending --
+                # the whole point of the animation) the character actually
+                # on screen is cell.seq[cell.step], not the stale cell.char.
+                # Retargeting from the stale value can walk the drum
+                # backward from what's visibly displayed.
+                cur = cell.seq[cell.step] if cell.phase == 1 else cell.char
+                seq = self._drum.sequence(cur, target, self._max_steps)
                 if not seq:
-                    cell.seq = ()
-                    cell.step = 0
+                    if cell.phase == 1:
+                        # Mid-hinge and already arrived: the top face shows
+                        # `cur`, which is exactly the new target, so no
+                        # further travel is needed. But the bottom half is
+                        # still physically in flight for THIS step and must
+                        # still land to sync the display -- truncate the
+                        # sequence right after the current step instead of
+                        # abandoning it, leaving start_ms/step/phase (and so
+                        # the pending bottom's due time) untouched.
+                        cell.seq = cell.seq[: cell.step + 1]
+                    else:
+                        cell.seq = ()
+                        cell.step = 0
                     continue
                 cell.seq = seq
                 cell.step = 0
@@ -130,9 +148,6 @@ class FlapMachine:
                     cell.phase = 0
                     cell.char = char
                     cell.step += 1
-            if not cell.busy and cell.seq:
-                cell.seq = ()
-                cell.step = 0
         return ops
 
     def current_grid(self) -> tuple[str, ...]:

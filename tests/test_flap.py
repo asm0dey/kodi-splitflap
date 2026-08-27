@@ -91,6 +91,47 @@ def test_retarget_mid_flight_redirects_without_restarting_the_board():
     assert ops[-1].char == "1"
 
 
+def test_mid_flight_retarget_during_hinge_continues_from_the_displayed_char():
+    """Retargeting while a cell is in the hinge state (top landed, bottom
+    still pending -- phase 1) must continue forward from the character
+    actually on screen (`cell.seq[cell.step]`), not from the stale
+    `cell.char`, which only updates when the bottom half lands.
+
+    Unit-distance sequences never exercise this: with distance 1 there is
+    only one step, so the stale-vs-displayed distinction never has a chance
+    to diverge. This needs a STRIDED sequence (distance > MAX_STEPS) so the
+    displayed character sits several drum positions ahead of the stale
+    `cell.char`.
+    """
+    chars = "".join(chr(c) for c in range(0x41, 0x41 + 26))  # A..Z
+    d = Drum(chars)
+    m = FlapMachine(d, rows=1, cols=1, col_delay_ms=0, row_delay_ms=0, jitter_ms=0)
+
+    m.retarget(("Z",), now_ms=0)
+    # distance blank->Z is 26, well over MAX_STEPS (12): this is strided.
+    assert len(m._cells[0].seq) < 26
+
+    # Drive to the hinge: top of the third step ('I') has landed, its
+    # bottom has not.
+    for t in (0, 100, 200, 300, 400):
+        m.tick(t)
+    cell = m._cells[0]
+    assert cell.phase == 1
+    displayed = cell.seq[cell.step]
+    displayed_idx = d.chars.index(displayed)
+
+    m.retarget(("Z",), now_ms=400)   # mid-flight retarget during the hinge
+    ops = m.tick(400)
+
+    top_ops = [o for o in ops if o.half == "top"]
+    assert top_ops, "expected a top op to fire immediately after retarget"
+    new_idx = d.chars.index(top_ops[0].char)
+    assert new_idx > displayed_idx, (
+        f"retarget moved backward through the drum: displayed {displayed!r} "
+        f"(idx {displayed_idx}) -> next top {top_ops[0].char!r} (idx {new_idx})"
+    )
+
+
 def test_grid_shape_mismatch_raises():
     m = machine(rows=1, cols=3)
     try:
