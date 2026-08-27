@@ -28,6 +28,12 @@ class Geometry:
     def cells(self) -> int:
         return self.rows * self.cols
 
+    def cell_index(self, row: int, col: int) -> int:
+        """Row-major flat index for (row, col), matching flap.FlapMachine's
+        own cell numbering (`idx = r * cols + c`) so a PaintOp.cell and a
+        board coordinate always agree on which tile they mean."""
+        return row * self.cols + col
+
     def half_rect(self, row: int, col: int, half: str) -> tuple[int, int, int, int]:
         """Return (x, y, w, h) for one half of one tile."""
         x = self.origin_x + col * (self.tile_w + self.gap)

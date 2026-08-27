@@ -85,6 +85,22 @@ def test_rows_descend_the_screen():
     assert b[1] > a[1]
 
 
+def test_cell_index_is_row_major_on_a_non_square_grid():
+    """A square grid can't distinguish row-major from column-major or a
+    transposed formula -- (r, c) and (c, r) collide when rows == cols. Use
+    the real 6x22 reference geometry, where they can't.
+    """
+    g = compute(rows=6)
+    assert g.cols == 22
+    assert g.cell_index(0, 0) == 0
+    assert g.cell_index(5, 21) == g.cells - 1 == 131
+
+
+def test_cell_index_does_not_transpose_row_and_column():
+    g = compute(rows=6)
+    assert g.cell_index(1, 0) != g.cell_index(0, 1)
+
+
 def test_every_cell_lies_inside_the_frame():
     """No tile may be positioned off-screen in either axis."""
     g = compute(rows=6)

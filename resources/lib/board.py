@@ -13,6 +13,10 @@ someone forgets to update it. Instead this module detects it once at
 runtime: the first control built this session tries the kwarg form, and if
 that raises TypeError every later control (including that first one) falls
 back to constructing plain and tinting with setColorDiffuse().
+
+Settings colours and the row/column -> tile index arithmetic are validated
+and computed by the pure `colour` and `geometry` modules respectively, not
+here -- this file only calls them and reacts to what they say.
 """
 
 from collections.abc import Iterable
@@ -21,14 +25,10 @@ import xbmc
 import xbmcgui
 
 from .charset import BLANK
+from .colour import FALLBACK_ARGB, to_argb
 from .flap import PaintOp
 from .geometry import Geometry
 from .glyphs import GlyphIndex
-
-
-def _argb(hex_rgb: str) -> str:
-    """Convert a setting's 'RRGGBB' (or '#RRGGBB') value to opaque AARRGGBB."""
-    return "FF" + hex_rgb.lstrip("#").upper()
 
 
 class BoardView:
@@ -39,16 +39,37 @@ class BoardView:
         self._window = window
         self._geo = geometry
         self._index = index
-        self._letter = _argb(letter_colour)
-        self._accent = _argb(accent_colour)
+        self._letter = self._resolve_colour("letter", letter_colour)
+        self._accent = self._resolve_colour("accent", accent_colour)
         self._halves: dict[tuple[int, str], xbmcgui.ControlImage] = {}
         self._accent_cells: frozenset[int] = frozenset()
         # None = not yet probed. True/False memoise the result of the first
         # attempt so later builds don't pay for a repeated failing kwarg call.
         self._color_diffuse_kwarg: bool | None = None
 
+    def _resolve_colour(self, name: str, hex_rgb: str) -> str:
+        """Validate a settings colour via the pure `colour` module.
+
+        `to_argb` can't log (it has no Kodi import); this is the boundary
+        that can, so an invalid settings value is visible in the log rather
+        than silently painting the whole board with a garbage tint.
+        """
+        argb = to_argb(hex_rgb)
+        if argb is None:
+            xbmc.log(
+                f"splitflap: invalid {name} colour {hex_rgb!r}, "
+                f"falling back to {FALLBACK_ARGB}",
+                xbmc.LOGWARNING,
+            )
+            return FALLBACK_ARGB
+        return argb
+
     def build(self) -> None:
         """Create one ControlImage per half of every cell, blank-faced."""
+        # Reset in case build() is ever called a second time on a live view --
+        # otherwise a tile accented by a previous board would stay tinted
+        # under the new one until set_accents() next disagreed with it.
+        self._accent_cells = frozenset()
         blank_top = self._index.path(BLANK, "top")
         blank_bottom = self._index.path(BLANK, "bottom")
         # Typed as the base Control: addControls takes List[Control], and
@@ -56,7 +77,7 @@ class BoardView:
         controls: list[xbmcgui.Control] = []
         for row in range(self._geo.rows):
             for col in range(self._geo.cols):
-                cell = row * self._geo.cols + col
+                cell = self._geo.cell_index(row, col)
                 for half, texture in (("top", blank_top), ("bottom", blank_bottom)):
                     x, y, w, h = self._geo.half_rect(row, col, half)
                     control = self._make_control(x, y, w, h, texture, self._letter)
@@ -70,15 +91,21 @@ class BoardView:
         """Construct one tinted ControlImage, probing the colorDiffuse kwarg once.
 
         Tries the kwarg constructor form first. On TypeError (this Kodi
-        build's xbmcgui doesn't accept it), remembers that and falls back to
-        constructing plain then calling setColorDiffuse() -- here and for
-        every later control this session.
+        build's xbmcgui doesn't accept it), remembers that, logs why, and
+        falls back to constructing plain then calling setColorDiffuse() --
+        here and for every later control this session.
         """
         if self._color_diffuse_kwarg is not False:
             try:
                 control = xbmcgui.ControlImage(x, y, w, h, texture, colorDiffuse=colour)
-            except TypeError:
+            except TypeError as exc:
                 self._color_diffuse_kwarg = False
+                xbmc.log(
+                    f"splitflap: colorDiffuse kwarg rejected ({exc!r}); "
+                    "falling back to setColorDiffuse() for the rest of this "
+                    "session",
+                    xbmc.LOGDEBUG,
+                )
             else:
                 self._color_diffuse_kwarg = True
                 return control
@@ -92,9 +119,10 @@ class BoardView:
         Called once per board (a fresh grid), never per animation frame.
         Takes (row, col) pairs -- unlike PaintOp.cell, which is a row-major
         index -- because that's how accents are recorded upstream; the
-        conversion to row-major happens here, once, at the boundary.
+        conversion to row-major happens here, once, at the boundary, via
+        the same Geometry.cell_index() build() uses so the two can't drift.
         """
-        wanted = frozenset(row * self._geo.cols + col for row, col in cells)
+        wanted = frozenset(self._geo.cell_index(row, col) for row, col in cells)
         for cell in self._accent_cells - wanted:
             self._recolour(cell, self._letter)
         for cell in wanted - self._accent_cells:

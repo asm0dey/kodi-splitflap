@@ -41,6 +41,28 @@ def test_tofu_itself_missing_raises_rather_than_looping():
         raise AssertionError("expected LookupError")
 
 
+def test_repeated_lookups_probe_the_filesystem_only_once():
+    """paint() calls path() for the same characters over and over across a
+    board transition -- up to ~40 times per 200ms step. Without memoisation,
+    N identical lookups over a chain of D search dirs cost N * D exists()
+    probes (measured: 3 lookups over 3 dirs cost 9 calls). With memoisation
+    only the first lookup should touch the filesystem; the rest are free.
+    """
+    calls = []
+
+    def exists(path):
+        calls.append(path)
+        return path == "bundled/t_0041.png"
+
+    idx = GlyphIndex(["cache", "pack", "bundled"], exists)
+    for _ in range(3):
+        idx.path("A", "top")
+    assert len(calls) == 3, (
+        f"expected 3 filesystem probes total (1 per search dir, once), "
+        f"got {len(calls)}"
+    )
+
+
 def test_charset_reports_characters_with_both_halves():
     exists = fake_fs(("bundled", "t_0041.png"), ("bundled", "b_0041.png"),
                      ("bundled", "t_0042.png"))  # B has no bottom half

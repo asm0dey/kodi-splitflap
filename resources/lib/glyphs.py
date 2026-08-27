@@ -15,6 +15,11 @@ class GlyphIndex:
     def __init__(self, search_dirs: list[str], exists: Callable[[str], bool]) -> None:
         self._dirs = list(search_dirs)
         self._exists = exists
+        # Resolved (ch, half) -> path, populated on first lookup. Safe
+        # because the index is built once per screensaver activation and
+        # the glyph files on disk can't change mid-session -- a stale cache
+        # entry isn't a scenario that arises here.
+        self._resolved: dict[tuple[str, str], str] = {}
 
     def _find(self, ch: str, half: str) -> str | None:
         name = glyph_filename(ch, half)
@@ -25,17 +30,22 @@ class GlyphIndex:
         return None
 
     def path(self, ch: str, half: str) -> str:
+        key = (ch, half)
+        cached = self._resolved.get(key)
+        if cached is not None:
+            return cached
+
         found = self._find(ch, half)
-        if found is not None:
-            return found
-        fallback = self._find(TOFU, half)
-        if fallback is None:
-            raise LookupError(
-                f"tofu glyph {TOFU!r} is missing from every search dir "
-                f"{self._dirs!r} -- "
-                "the bundled set is incomplete"
-            )
-        return fallback
+        if found is None:
+            found = self._find(TOFU, half)
+            if found is None:
+                raise LookupError(
+                    f"tofu glyph {TOFU!r} is missing from every search dir "
+                    f"{self._dirs!r} -- "
+                    "the bundled set is incomplete"
+                )
+        self._resolved[key] = found
+        return found
 
     def charset(self, candidates: Iterable[str]) -> set[str]:
         """Characters with BOTH halves present, so a tile can render them."""
