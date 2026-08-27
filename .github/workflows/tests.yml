@@ -40,3 +40,9 @@ jobs:
             echo "$matches"
             exit 1
           fi
+      - name: package addon
+        run: ./tools/build_addon.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: addon-zip-${{ matrix.python-version }}
+          path: build/*.zip
