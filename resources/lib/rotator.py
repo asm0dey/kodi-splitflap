@@ -17,8 +17,14 @@ from typing import Protocol
 from .sources.base import Content
 
 
-class Source(Protocol):
-    """Duck-typed source interface."""
+class _SourceLike(Protocol):
+    """Duck-typed source interface for structural typing.
+
+    We use a Protocol here instead of importing the concrete Source class
+    from sources.base because we want structural typing (any object with
+    a next() method works), not nominal typing. This allows test sources
+    and third-party sources to work without inheriting from a base class.
+    """
 
     def next(self) -> Content:
         ...
@@ -27,9 +33,9 @@ class Source(Protocol):
 class Rotator:
     def __init__(
         self,
-        source: Source,
+        source: _SourceLike,
         hold_s: float,
-        fallback: Source | None = None,
+        fallback: _SourceLike | None = None,
         log: Callable[[str], None] | None = None,
     ) -> None:
         self._source = source
