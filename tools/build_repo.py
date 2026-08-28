@@ -65,6 +65,30 @@ def package(source: pathlib.Path, version: str) -> pathlib.Path:
     return out
 
 
+def write_listing(directory: pathlib.Path) -> None:
+    """Write the directory page a Kodi HTTP source browses this tree by.
+
+    GitHub Pages serves no directory listing -- a bare directory URL is a
+    404 -- and Kodi's HTTP VFS navigates by parsing anchors out of the page
+    at that URL. Without these files the repository is still installable by
+    exact URL (which is all the repository ADD-ON ever requests), but
+    "Add source" cannot list it, so the documented file-manager route
+    dead-ends. Deliberately plain markup: it is parsed by a VFS, not read.
+    """
+    entries = sorted(p for p in directory.iterdir() if p.name != "index.html")
+    rows = "\n".join(
+        f'<li><a href="{p.name}/">{p.name}/</a></li>' if p.is_dir()
+        else f'<li><a href="{p.name}">{p.name}</a></li>'
+        for p in entries
+    )
+    (directory / "index.html").write_text(
+        "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
+        f"<title>{directory.name}</title></head>\n"
+        f"<body><h1>{directory.name}</h1>\n<ul>\n{rows}\n</ul></body></html>\n",
+        encoding="utf-8",
+    )
+
+
 def main() -> int:
     addons = find_addons()
     if not addons:
@@ -98,6 +122,13 @@ def main() -> int:
     digest = hashlib.md5(xml, usedforsecurity=False).hexdigest()
     (DOCS / "addons.xml.md5").write_text(digest, encoding="utf-8")
     print(f"\naddons.xml  {len(addons)} add-ons, md5 {digest}")
+
+    # Last, so every zip, icon and checksum above is already in place to be
+    # listed -- and the add-on directories before the root, which links them.
+    for source, _ in addons:
+        write_listing(DOCS / source.name)
+    write_listing(DOCS)
+    print(f"index.html  {len(addons) + 1} directory listings")
     return 0
 
 
