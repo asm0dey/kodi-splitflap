@@ -27,7 +27,7 @@ import xbmcgui
 from .charset import BLANK
 from .colour import FALLBACK_ARGB, to_argb
 from .flap import PaintOp
-from .geometry import SKIN_H, SKIN_W, Geometry
+from .geometry import HALVES, SKIN_H, SKIN_W, Geometry, Half
 from .glyphs import GlyphIndex
 
 
@@ -84,7 +84,9 @@ class BoardView:
         for row in range(self._geo.rows):
             for col in range(self._geo.cols):
                 cell = self._geo.cell_index(row, col)
-                for half, texture in (("top", blank_top), ("bottom", blank_bottom)):
+                blanks: tuple[tuple[Half, str], ...] = (
+                    ("top", blank_top), ("bottom", blank_bottom))
+                for half, texture in blanks:
                     x, y, w, h = self._geo.half_rect(row, col, half)
                     control = self._make_control(x, y, w, h, texture, self._letter)
                     self._halves[(cell, half)] = control
@@ -190,7 +192,7 @@ class BoardView:
 
     def _repaint(self, cell: int) -> None:
         """Re-apply both halves of one cell under the current accent state."""
-        for half in ("top", "bottom"):
+        for half in HALVES:
             control = self._halves.get((cell, half))
             if control is None:
                 continue
@@ -198,12 +200,12 @@ class BoardView:
                 (cell, half), BLANK)), useCache=True)
             control.setColorDiffuse(self._colour(cell))
 
-    def _accent_texture(self, half: str) -> str:
+    def _accent_texture(self, half: Half) -> str:
         """The light accent card, resolved through the glyph index."""
         return self._index.accent_path(half)
 
     def _recolour(self, cell: int, colour: str) -> None:
-        for half in ("top", "bottom"):
+        for half in HALVES:
             control = self._halves.get((cell, half))
             if control is not None:
                 control.setColorDiffuse(colour)
@@ -224,7 +226,7 @@ class BoardView:
                              useCache=True)
             control.setColorDiffuse(self._colour(op.cell))
 
-    def _texture(self, cell: int, half: str, char: str) -> str:
+    def _texture(self, cell: int, half: Half, char: str) -> str:
         if cell in self._accent_cells:
             return self._index.accent_path(half)
         return self._index.path(char, half)

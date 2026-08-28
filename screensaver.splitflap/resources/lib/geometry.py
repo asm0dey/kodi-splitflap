@@ -6,6 +6,8 @@ the board fills the width and letterboxes vertically, exactly as the
 reference does. Deriving columns by filling the HEIGHT instead yields 18
 columns at six rows and does not match.
 """
+import dataclasses
+from typing import Literal
 
 CELL_ASPECT = 0.55    # tile width / tile height. Split-flap cards are portrait.
 BOARD_ASPECT = 2.0    # tile field width / height, measured from the reference.
@@ -13,16 +15,21 @@ SKIN_W = 1920
 SKIN_H = 1080
 
 
+Half = Literal["top", "bottom"]
+HALVES: tuple[Half, Half] = ("top", "bottom")
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
 class Geometry:
-    def __init__(self, rows: int, cols: int, tile_w: int, tile_h: int,
-                 gap: int, origin_x: int, origin_y: int) -> None:
-        self.rows = rows
-        self.cols = cols
-        self.tile_w = tile_w
-        self.tile_h = tile_h
-        self.gap = gap
-        self.origin_x = origin_x
-        self.origin_y = origin_y
+    """The board's measurements. Computed once per activation, never mutated."""
+
+    rows: int
+    cols: int
+    tile_w: int
+    tile_h: int
+    gap: int
+    origin_x: int
+    origin_y: int
 
     @property
     def cells(self) -> int:
@@ -34,7 +41,8 @@ class Geometry:
         board coordinate always agree on which tile they mean."""
         return row * self.cols + col
 
-    def half_rect(self, row: int, col: int, half: str) -> tuple[int, int, int, int]:
+    def half_rect(self, row: int, col: int,
+                  half: Half) -> tuple[int, int, int, int]:
         """Return (x, y, w, h) for one half of one tile."""
         x = self.origin_x + col * (self.tile_w + self.gap)
         y = self.origin_y + row * (self.tile_h + self.gap)

@@ -12,11 +12,13 @@ rather than paid every frame forever.
 """
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Sequence
 from typing import NamedTuple
 
 from .charset import BLANK, TOFU
 from .drum import MAX_STEPS, Drum
+from .geometry import Half
 
 STEP_MS = 200          # real hardware runs at five flaps per second
 COL_DELAY_MS = 18      # left-to-right ripple
@@ -26,20 +28,25 @@ JITTER_MS = 12
 
 class PaintOp(NamedTuple):
     cell: int
-    half: str          # "top" or "bottom", never a bool
+    half: Half         # never a bool
     char: str
 
 
+@dataclasses.dataclass(slots=True)
 class _Cell:
-    __slots__ = ("char", "phase", "seq", "start_ms", "step", "top_char")
+    """One tile's animation state. Mutable: it IS the state machine."""
 
-    def __init__(self, char: str) -> None:
-        self.char = char
-        self.top_char = char
-        self.seq: tuple[str, ...] = ()
-        self.step = 0
-        self.phase = 0          # 0 = top pending, 1 = bottom pending
-        self.start_ms = 0
+    char: str
+    # Not a field: a fresh cell shows the same character on both halves,
+    # and after that the two diverge for exactly one half-step -- the hinge.
+    top_char: str = dataclasses.field(init=False)
+    seq: tuple[str, ...] = ()
+    step: int = 0
+    phase: int = 0              # 0 = top pending, 1 = bottom pending
+    start_ms: int = 0
+
+    def __post_init__(self) -> None:
+        self.top_char = self.char
 
     @property
     def busy(self) -> bool:

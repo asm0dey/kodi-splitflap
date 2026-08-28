@@ -9,6 +9,7 @@ import json
 from collections.abc import Callable, Iterable
 
 from .charset import TOFU
+from .geometry import Half
 from .glyphgen import accent_filename, glyph_filename
 
 
@@ -38,7 +39,7 @@ class GlyphIndex:
         # entry isn't a scenario that arises here.
         self._resolved: dict[tuple[str, str], str] = {}
 
-    def _find(self, ch: str, half: str) -> str | None:
+    def _find(self, ch: str, half: Half) -> str | None:
         name = glyph_filename(ch, half)
         for d in self._dirs:
             path = f"{d}/{name}"
@@ -46,7 +47,7 @@ class GlyphIndex:
                 return path
         return None
 
-    def path(self, ch: str, half: str) -> str:
+    def path(self, ch: str, half: Half) -> str:
         key = (ch, half)
         cached = self._resolved.get(key)
         if cached is not None:
@@ -64,7 +65,7 @@ class GlyphIndex:
         self._resolved[key] = found
         return found
 
-    def accent_path(self, half: str) -> str:
+    def accent_path(self, half: Half) -> str:
         """Resolve the accent tile's texture through the same search order.
 
         A pack may ship its own accent card; otherwise the bundled one is

@@ -11,6 +11,8 @@ import os
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
+from .geometry import Half
+
 if TYPE_CHECKING:  # PIL is a build-time dependency, imported lazily at runtime
     from PIL.Image import Image
 
@@ -48,7 +50,7 @@ LUG_H_FRAC = 0.085
 ACCENT_NAME = "accent"
 
 
-def accent_filename(half: str) -> str:
+def accent_filename(half: Half) -> str:
     """The accent tile's texture name. Not a character, so not codepoint-named."""
     return f"{'t' if half == 'top' else 'b'}_{ACCENT_NAME}.png"
 
@@ -76,8 +78,11 @@ def render_accent(out_dir: str, half_w: int, half_h: int) -> list[str]:
               fill=max(0, ACCENT_CARD_VALUE - 60), width=2)
 
     written = []
-    for half, box in (("top", (0, 0, half_w, half_h)),
-                      ("bottom", (0, half_h, half_w, full_h))):
+    boxes: dict[Half, tuple[int, int, int, int]] = {
+        "top": (0, 0, half_w, half_h),
+        "bottom": (0, half_h, half_w, full_h),
+    }
+    for half, box in boxes.items():
         name = accent_filename(half)
         card.crop(box).convert("L").save(os.path.join(out_dir, name), "PNG")
         written.append(name)
@@ -145,7 +150,7 @@ def render_plate(out_dir: str, font_path: str, text: str = "KODI",
     return ["frame_plate.png"]
 
 
-def glyph_filename(ch: str, half: str) -> str:
+def glyph_filename(ch: str, half: Half) -> str:
     prefix = "t" if half == "top" else "b"
     return f"{prefix}_{ord(ch):04x}.png"
 
@@ -176,10 +181,11 @@ def render_glyphs(
         _draw_baselined(draw, ch, font, half_w, baseline)
         draw.line([(0, half_h - 1), (half_w, half_h - 1)], fill=HINGE_VALUE, width=2)
 
-        for half, box in (
-            ("top", (0, 0, half_w, half_h)),
-            ("bottom", (0, half_h, half_w, full_h)),
-        ):
+        boxes: dict[Half, tuple[int, int, int, int]] = {
+            "top": (0, 0, half_w, half_h),
+            "bottom": (0, half_h, half_w, full_h),
+        }
+        for half, box in boxes.items():
             name = glyph_filename(ch, half)
             card.crop(box).convert("L").save(os.path.join(out_dir, name), "PNG")
             written.append(name)

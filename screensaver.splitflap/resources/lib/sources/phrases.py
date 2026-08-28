@@ -8,8 +8,8 @@ random visibly repeats within a few boards and reads as a bug.
 """
 import random
 from collections.abc import Sequence
-from typing import Any
 
+from ..layout import Accent
 from .base import Content, Source
 
 AUTHOR_SEP = "\\n"
@@ -54,7 +54,7 @@ class PhraseSource(Source):
         if not phrase:
             return Content(lines=(), accents=(), refresh_in=None)
         lines = split_author(phrase)
-        accents: list[dict[str, Any]] = [
+        accents: list[Accent] = [
             {"corner": "top-left"},
             {"corner": "top-right"},
         ]

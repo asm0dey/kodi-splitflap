@@ -5,22 +5,50 @@ being long. The block grows to fit and centres; genuine overflow
 ellipsises into the final cell of a full-width last row, where a board
 running out of space would put it.
 """
+import dataclasses
 from collections.abc import Sequence
-from typing import Any
+from typing import Literal, TypedDict
 
 from .charset import BLANK
 
 ELLIPSIS = "…"
 
 
+class BeforeLineAccent(TypedDict):
+    """Accent the padding cell left of where source line `n` starts."""
+
+    before_line: int
+
+
+class CornerAccent(TypedDict):
+    """Accent a fixed corner of the grid."""
+
+    corner: Literal["top-left", "top-right", "bottom-left", "bottom-right"]
+
+
+class CellAccent(TypedDict):
+    """Accent one exact cell. The only form that breaks when rows change."""
+
+    cell: Sequence[int]
+
+
+# What a source puts in Content.accents. A dict, not a class: contributors
+# are other add-ons handing us plain JSON-ish data across an import
+# boundary, so the runtime type has to stay a dict -- these just say which
+# dicts mean something. An unrecognised one resolves to no cell and is
+# dropped, never raised.
+Accent = BeforeLineAccent | CornerAccent | CellAccent
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
 class Board:
-    def __init__(self, grid: tuple[str, ...],
-                 accents: frozenset[tuple[int, int]]) -> None:
-        self.grid = grid
-        self.accents = accents
+    """One laid-out board: every cell's character, and which are accented."""
+
+    grid: tuple[str, ...]
+    accents: frozenset[tuple[int, int]]
 
 
-def build(lines: Sequence[str], accents: Sequence[dict[str, Any]],
+def build(lines: Sequence[str], accents: Sequence[Accent],
           rows: int, cols: int, rtl: bool = False) -> Board:
     # 1. Uppercase the whole string first. Case expansion changes line
     #    length, so it must happen before wrapping.
@@ -48,7 +76,7 @@ def _collides(board: Board) -> bool:
     return any(board.grid[r][c] != BLANK for r, c in board.accents)
 
 
-def _compose(upper: list[str], accents: Sequence[dict[str, Any]],
+def _compose(upper: list[str], accents: Sequence[Accent],
              rows: int, cols: int, width: int, rtl: bool) -> Board:
     """Lay the text out at `width`, still centred across all `cols`."""
     # 2-3. Wrap, recording where each source line starts among wrapped lines.
@@ -149,7 +177,7 @@ def _wrap(text: str, cols: int) -> list[str]:
     return result
 
 
-def _resolve_accents(accents: Sequence[dict[str, Any]],
+def _resolve_accents(accents: Sequence[Accent],
                      rows: int, cols: int, top: int,
                      line_start: list[int], offsets: list[int],
                      wrapped: list[str]) -> list[tuple[int, int]]:
@@ -167,7 +195,7 @@ def _resolve_accents(accents: Sequence[dict[str, Any]],
     return out
 
 
-def _accent_cell(spec: dict[str, Any], rows: int, cols: int, top: int,
+def _accent_cell(spec: Accent, rows: int, cols: int, top: int,
                  line_start: list[int], offsets: list[int],
                  wrapped: list[str]) -> tuple[int, int] | None:
     """Resolve one accent spec to a cell, or None if it does not name one."""
@@ -185,7 +213,7 @@ def _accent_cell(spec: dict[str, Any], rows: int, cols: int, top: int,
     return None
 
 
-def _before_line_cell(spec: dict[str, Any], rows: int, top: int,
+def _before_line_cell(spec: BeforeLineAccent, rows: int, top: int,
                       line_start: list[int], offsets: list[int],
                       wrapped: list[str]) -> tuple[int, int] | None:
     """The cell just left of where a given source line starts."""

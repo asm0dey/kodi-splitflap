@@ -12,6 +12,8 @@ import dataclasses
 from collections.abc import Sequence
 from typing import Any
 
+from ..layout import Accent
+
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class Content:
@@ -26,7 +28,7 @@ class Content:
     """
 
     lines: Sequence[str] = ()
-    accents: Sequence[dict[str, Any]] = ()
+    accents: Sequence[Accent] = ()
     refresh_in: float | None = dataclasses.field(default=None, compare=False)
 
     def __post_init__(self) -> None:
