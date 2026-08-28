@@ -1,3 +1,4 @@
+from resources.lib.geometry import Cell
 from resources.lib.layout import ELLIPSIS, build
 
 
@@ -206,3 +207,8 @@ def test_accent_is_dropped_when_the_text_cannot_move():
     b = build(["AB"], [{"corner": "top-left"}], 1, 2)
     assert b.grid[0] == "AB"
     assert b.accents == frozenset()
+
+
+def test_accent_cell_accepts_a_cell_as_well_as_a_pair():
+    b = build(["AB"], [{"cell": Cell(2, 3)}], 4, 10)
+    assert Cell(2, 3) in b.accents

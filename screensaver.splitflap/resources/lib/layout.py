@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from typing import Literal, TypedDict
 
 from .charset import BLANK
+from .geometry import Cell
 
 ELLIPSIS = "…"
 
@@ -27,9 +28,14 @@ class CornerAccent(TypedDict):
 
 
 class CellAccent(TypedDict):
-    """Accent one exact cell. The only form that breaks when rows change."""
+    """Accent one exact cell. The only form that breaks when rows change.
 
-    cell: Sequence[int]
+    A Cell from our own sources; a plain [row, col] from a contributor's
+    dict, which is how the README documents it and how JSON-ish data
+    arrives. _accent_cell rebuilds either into a Cell.
+    """
+
+    cell: Cell | Sequence[int]
 
 
 # What a source puts in Content.accents. A dict, not a class: contributors
@@ -45,7 +51,7 @@ class Board:
     """One laid-out board: every cell's character, and which are accented."""
 
     grid: tuple[str, ...]
-    accents: frozenset[tuple[int, int]]
+    accents: frozenset[Cell]
 
 
 def build(lines: Sequence[str], accents: Sequence[Accent],
@@ -67,13 +73,13 @@ def build(lines: Sequence[str], accents: Sequence[Accent],
     # loses the accent rather than the letter.
     if _collides(board):
         board = Board(board.grid, frozenset(
-            c for c in board.accents if board.grid[c[0]][c[1]] == BLANK))
+            c for c in board.accents if board.grid[c.row][c.col] == BLANK))
     return board
 
 
 def _collides(board: Board) -> bool:
     """True if any accent cell has a letter under it."""
-    return any(board.grid[r][c] != BLANK for r, c in board.accents)
+    return any(board.grid[c.row][c.col] != BLANK for c in board.accents)
 
 
 def _compose(upper: list[str], accents: Sequence[Accent],
@@ -180,33 +186,39 @@ def _wrap(text: str, cols: int) -> list[str]:
 def _resolve_accents(accents: Sequence[Accent],
                      rows: int, cols: int, top: int,
                      line_start: list[int], offsets: list[int],
-                     wrapped: list[str]) -> list[tuple[int, int]]:
+                     wrapped: list[str]) -> list[Cell]:
     """Turn relative accent specs into concrete (row, col) cells.
 
     A source has no idea where its lines land after uppercasing, wrapping
     and centring, so it expresses accents relatively and this resolves
     them. Anything landing outside the grid is dropped, not raised.
     """
-    out: list[tuple[int, int]] = []
+    out: list[Cell] = []
     for spec in accents or ():
         cell = _accent_cell(spec, rows, cols, top, line_start, offsets, wrapped)
-        if cell and 0 <= cell[0] < rows and 0 <= cell[1] < cols:
+        if cell and 0 <= cell.row < rows and 0 <= cell.col < cols:
             out.append(cell)
     return out
 
 
 def _accent_cell(spec: Accent, rows: int, cols: int, top: int,
                  line_start: list[int], offsets: list[int],
-                 wrapped: list[str]) -> tuple[int, int] | None:
-    """Resolve one accent spec to a cell, or None if it does not name one."""
+                 wrapped: list[str]) -> Cell | None:
+    """Resolve one accent spec to a cell, or None if it does not name one.
+
+    A contributor's `cell` arrives as whatever it put in its dict -- a list
+    as often as a tuple -- so it is rebuilt into a Cell rather than trusted
+    to be one.
+    """
     if "cell" in spec:
-        return (int(spec["cell"][0]), int(spec["cell"][1]))
+        row, col = spec["cell"]
+        return Cell(int(row), int(col))
     if "corner" in spec:
         return {
-            "top-left": (0, 0),
-            "top-right": (0, cols - 1),
-            "bottom-left": (rows - 1, 0),
-            "bottom-right": (rows - 1, cols - 1),
+            "top-left": Cell(0, 0),
+            "top-right": Cell(0, cols - 1),
+            "bottom-left": Cell(rows - 1, 0),
+            "bottom-right": Cell(rows - 1, cols - 1),
         }.get(spec["corner"])
     if "before_line" in spec:
         return _before_line_cell(spec, rows, top, line_start, offsets, wrapped)
@@ -215,7 +227,7 @@ def _accent_cell(spec: Accent, rows: int, cols: int, top: int,
 
 def _before_line_cell(spec: BeforeLineAccent, rows: int, top: int,
                       line_start: list[int], offsets: list[int],
-                      wrapped: list[str]) -> tuple[int, int] | None:
+                      wrapped: list[str]) -> Cell | None:
     """The cell just left of where a given source line starts."""
     idx = int(spec["before_line"])
     if not 0 <= idx < len(line_start):
@@ -226,4 +238,4 @@ def _before_line_cell(spec: BeforeLineAccent, rows: int, top: int,
     row = top + wrapped_idx
     if not 0 <= row < rows:
         return None
-    return (row, offsets[row] - 1)
+    return Cell(row, offsets[row] - 1)

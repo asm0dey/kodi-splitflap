@@ -27,7 +27,7 @@ import xbmcgui
 from .charset import BLANK
 from .colour import FALLBACK_ARGB, to_argb
 from .flap import PaintOp
-from .geometry import HALVES, SKIN_H, SKIN_W, Geometry, Half
+from .geometry import HALVES, SKIN_H, SKIN_W, Cell, Geometry, Half
 from .glyphs import GlyphIndex
 
 
@@ -172,7 +172,7 @@ class BoardView:
         control.setColorDiffuse(colour)
         return control
 
-    def set_accents(self, cells: Iterable[tuple[int, int]]) -> None:
+    def set_accents(self, cells: Iterable[Cell]) -> None:
         """Record which cells are accented and repaint them.
 
         Only records: `paint()` is the single authority on what texture a
@@ -183,7 +183,7 @@ class BoardView:
         one writer plus recorded state is the fix.
         """
         wanted = frozenset(
-            self._geo.cell_index(row, col) for row, col in cells
+            self._geo.cell_index(c.row, c.col) for c in cells
         )
         changed = (wanted ^ self._accent_cells)
         self._accent_cells = wanted

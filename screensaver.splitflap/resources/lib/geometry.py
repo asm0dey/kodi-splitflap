@@ -7,7 +7,7 @@ reference does. Deriving columns by filling the HEIGHT instead yields 18
 columns at six rows and does not match.
 """
 import dataclasses
-from typing import Literal
+from typing import Literal, NamedTuple
 
 CELL_ASPECT = 0.55    # tile width / tile height. Split-flap cards are portrait.
 BOARD_ASPECT = 2.0    # tile field width / height, measured from the reference.
@@ -16,6 +16,19 @@ SKIN_H = 1080
 
 
 Half = Literal["top", "bottom"]
+
+
+class Cell(NamedTuple):
+    """A board coordinate. A tuple, so it still unpacks and hashes as one.
+
+    The other cell identity is the flat `row * cols + col` index, which is
+    what FlapMachine walks and what keys BoardView's controls -- see
+    cell_index. This one is for the layout side, where naming the two ints
+    is worth more than indexing speed.
+    """
+
+    row: int
+    col: int
 HALVES: tuple[Half, Half] = ("top", "bottom")
 
 
