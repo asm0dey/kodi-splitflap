@@ -8,42 +8,30 @@ One method suffices because identical content produces zero paint ops --
 refreshing in place and advancing are indistinguishable at the render
 layer. refresh_in is what stops a fast poll racing the phrase list.
 """
+import dataclasses
 from collections.abc import Sequence
 from typing import Any
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
 class Content:
-    __slots__ = ("accents", "lines", "refresh_in")
+    """One board's worth of content, plus when to ask for the next.
 
-    def __init__(
-        self,
-        lines: Sequence[str] = (),
-        accents: Sequence[dict[str, Any]] = (),
-        refresh_in: float | None = None,
-    ) -> None:
-        self.lines: tuple[str, ...] = tuple(lines)
-        self.accents: tuple[dict[str, Any], ...] = tuple(accents)
-        self.refresh_in = refresh_in
+    Frozen because the render loop holds on to the last Content and compares
+    the next one against it -- a source mutating what it already returned
+    would make that comparison lie. Declared as Sequence because sources
+    hand us lists; __post_init__ freezes them into tuples so equality and
+    hashing hold. refresh_in is out of the comparison: two Contents that
+    differ only in when to ask again are the same board.
+    """
 
-    def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, Content)
-            and self.lines == other.lines
-            and self.accents == other.accents
-        )
+    lines: Sequence[str] = ()
+    accents: Sequence[dict[str, Any]] = ()
+    refresh_in: float | None = dataclasses.field(default=None, compare=False)
 
-    def __hash__(self) -> int:
-        """Kept consistent with __eq__, which ignores refresh_in.
-
-        Defining __eq__ without __hash__ silently makes the class
-        unhashable, so a caller putting Content in a set or dict would get
-        a TypeError far from the cause.
-        """
-        return hash((self.lines, self.accents))
-
-    def __repr__(self) -> str:
-        return (f"Content(lines={self.lines!r}, accents={self.accents!r}, "
-                f"refresh_in={self.refresh_in!r})")
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "lines", tuple(self.lines))
+        object.__setattr__(self, "accents", tuple(self.accents))
 
 
 def coerce(value: Any) -> Content:

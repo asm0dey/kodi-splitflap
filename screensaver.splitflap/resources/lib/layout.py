@@ -5,6 +5,7 @@ being long. The block grows to fit and centres; genuine overflow
 ellipsises into the final cell of a full-width last row, where a board
 running out of space would put it.
 """
+from collections.abc import Sequence
 from typing import Any
 
 from .charset import BLANK
@@ -19,8 +20,7 @@ class Board:
         self.accents = accents
 
 
-def build(lines: list[str] | tuple[str, ...],
-          accents: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+def build(lines: Sequence[str], accents: Sequence[dict[str, Any]],
           rows: int, cols: int, rtl: bool = False) -> Board:
     # 1. Uppercase the whole string first. Case expansion changes line
     #    length, so it must happen before wrapping.
@@ -48,8 +48,7 @@ def _collides(board: Board) -> bool:
     return any(board.grid[r][c] != BLANK for r, c in board.accents)
 
 
-def _compose(upper: list[str],
-             accents: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+def _compose(upper: list[str], accents: Sequence[dict[str, Any]],
              rows: int, cols: int, width: int, rtl: bool) -> Board:
     """Lay the text out at `width`, still centred across all `cols`."""
     # 2-3. Wrap, recording where each source line starts among wrapped lines.
@@ -150,7 +149,7 @@ def _wrap(text: str, cols: int) -> list[str]:
     return result
 
 
-def _resolve_accents(accents: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+def _resolve_accents(accents: Sequence[dict[str, Any]],
                      rows: int, cols: int, top: int,
                      line_start: list[int], offsets: list[int],
                      wrapped: list[str]) -> list[tuple[int, int]]:
