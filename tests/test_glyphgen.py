@@ -89,11 +89,15 @@ def test_upper_flap_casts_a_shadow_on_the_lower_half(tmp_path):
     from PIL import Image
 
     render_glyphs(" ", FONT, str(tmp_path), 78, 71)
+    # tobytes(), not getdata(): every glyph is mode "L", so the buffer is one
+    # byte per pixel and sums/maxima over it are identical -- and unlike
+    # ImagingCore, bytes is typed as an iterable of int, which Pillow 12's
+    # stubs otherwise reject.
     probe = 4
     with Image.open(os.path.join(str(tmp_path), "t_0020.png")) as top:
-        top_row = sum(top.crop((0, probe, top.width, probe + 1)).getdata())
+        top_row = sum(top.crop((0, probe, top.width, probe + 1)).tobytes())
     with Image.open(os.path.join(str(tmp_path), "b_0020.png")) as bot:
-        bot_row = sum(bot.crop((0, probe, bot.width, probe + 1)).getdata())
+        bot_row = sum(bot.crop((0, probe, bot.width, probe + 1)).tobytes())
     assert bot_row < top_row, "the lower half should be shaded by the flap above"
 
 
@@ -103,7 +107,7 @@ def test_each_half_is_top_lit(tmp_path):
 
     render_glyphs(" ", FONT, str(tmp_path), 78, 71)
     with Image.open(os.path.join(str(tmp_path), "t_0020.png")) as top:
-        rows = [sum(top.crop((0, y, top.width, y + 1)).getdata())
+        rows = [sum(top.crop((0, y, top.width, y + 1)).tobytes())
                 for y in (0, top.height // 2, top.height - 2)]
     assert rows[0] > rows[1] > rows[2], f"not top-lit: {rows}"
 
@@ -119,9 +123,9 @@ def test_descender_punctuation_sits_below_the_hinge(tmp_path):
     from PIL import Image
     render_glyphs("H,", FONT, str(tmp_path), 78, 71)
     with Image.open(os.path.join(str(tmp_path), "t_002c.png")) as im:
-        top_max = max(im.crop((0, 0, im.width, im.height - 1)).getdata())
+        top_max = max(im.crop((0, 0, im.width, im.height - 1)).tobytes())
     with Image.open(os.path.join(str(tmp_path), "b_002c.png")) as im:
-        bottom_max = max(im.crop((0, 1, im.width, im.height)).getdata())
+        bottom_max = max(im.crop((0, 1, im.width, im.height)).tobytes())
     # The card and its shading never reach the letterform's brightness.
     assert bottom_max > 200, "the comma should be drawn in the bottom half"
     assert top_max < 200, "the comma should not reach into the top half"
