@@ -110,6 +110,7 @@ def _build_source(cfg: dict[str, Any]) -> LiveInfoSource | PhraseSource | _Sourc
 class Screensaver(xbmcgui.WindowXMLDialog):
     def __init__(self, *args: object, **kwargs: object) -> None:
         self._stop = False
+        self._was_settled = True
         self._cfg = config.read()
 
     def onInit(self) -> None:
@@ -173,50 +174,7 @@ class Screensaver(xbmcgui.WindowXMLDialog):
                 fallback=LiveInfoSource(cfg["info_flags"], cfg["info_combine"]),
                 log=log,
             )
-            monitor = xbmc.Monitor()
-            animate = cfg["animate_flaps"]
-            was_settled = True
-            while not self._stop and not monitor.abortRequested():
-                if not xbmc.getCondVisibility("System.ScreenSaverActive"):
-                    break
-                # monotonic, not wall-clock time: an NTP step (e.g. a Fire TV
-                # Stick with no RTC, stepping its clock just after boot --
-                # exactly when a screensaver first runs) would otherwise
-                # stall every flap on a backward step or dump a cell's whole
-                # sequence in one tick on a forward step. Rotator and
-                # FlapMachine only ever compare deltas of this clock, so
-                # monotonic works for both. LiveInfoSource is unaffected --
-                # it owns its own wall-clock (time.time by default) for
-                # `seconds_to_next_minute`, independent of this loop's clock.
-                now = time.monotonic()
-                now_ms = int(now * 1000)
-                content = rotator.poll(now)
-                if content is not None:
-                    board = build_board(content.lines, content.accents,
-                                         self._geo.rows, self._geo.cols)
-                    self._view.set_accents(board.accents)
-                    # retarget and tick share one clock (now_ms) -- see
-                    # flap.FlapMachine.retarget's own docstring on why a
-                    # mismatched clock makes every cell dump its full
-                    # sequence on the first tick instead of animating.
-                    self._flap.retarget(board.grid, now_ms)
-                    was_settled = False
-                ops = self._flap.tick(now_ms)
-                if ops:
-                    self._view.paint(ops)
-                # After paint, and on the same clock tick() just consumed:
-                # folds() describes the gap between the landings tick()
-                # reports, so a stale clock would draw a card that has
-                # already arrived.
-                if animate:
-                    self._view.fold(self._flap.folds(now_ms))
-                settled = self._flap.settled
-                if settled and not was_settled:
-                    rotator.settled(now)
-                    was_settled = True
-                period = FRAME_MS if settled or not animate else FOLD_FRAME_MS
-                if monitor.waitForAbort(period / 1000.0):
-                    break
+            self._loop(rotator, xbmc.Monitor(), cfg["animate_flaps"])
         except Exception:
             log_error("render loop failed")
         finally:
@@ -228,6 +186,65 @@ class Screensaver(xbmcgui.WindowXMLDialog):
             # close() itself, or the GUI thread could tear the window down
             # while this thread is still mid-paint.
             self.close()
+
+    def _loop(self, rotator: Rotator, monitor: xbmc.Monitor,
+              animate: bool) -> None:
+        """Run frames until stopped, waiting out the rest of each one.
+
+        Its own method so the frame loop reads without the one-time source
+        construction and the shutdown guard _run wraps it in.
+        """
+        while not self._stop and not monitor.abortRequested():
+            if not xbmc.getCondVisibility("System.ScreenSaverActive"):
+                break
+            # monotonic, not wall-clock time: an NTP step (e.g. a Fire TV
+            # Stick with no RTC, stepping its clock just after boot --
+            # exactly when a screensaver first runs) would otherwise
+            # stall every flap on a backward step or dump a cell's whole
+            # sequence in one tick on a forward step. Rotator and
+            # FlapMachine only ever compare deltas of this clock, so
+            # monotonic works for both. LiveInfoSource is unaffected --
+            # it owns its own wall-clock (time.time by default) for
+            # `seconds_to_next_minute`, independent of this loop's clock.
+            now = time.monotonic()
+            settled = self._frame(rotator, now, int(now * 1000), animate)
+            period = FRAME_MS if settled or not animate else FOLD_FRAME_MS
+            if monitor.waitForAbort(period / 1000.0):
+                break
+
+    def _frame(self, rotator: Rotator, now: float, now_ms: int,
+               animate: bool) -> bool:
+        """Draw one frame, answering whether the board is settled.
+
+        _was_settled lives on the instance rather than in _loop because
+        the edge it marks -- the tick a board finishes on -- is found
+        here, and only the caller's period depends on the answer.
+        """
+        content = rotator.poll(now)
+        if content is not None:
+            board = build_board(content.lines, content.accents,
+                                 self._geo.rows, self._geo.cols)
+            self._view.set_accents(board.accents)
+            # retarget and tick share one clock (now_ms) -- see
+            # flap.FlapMachine.retarget's own docstring on why a
+            # mismatched clock makes every cell dump its full
+            # sequence on the first tick instead of animating.
+            self._flap.retarget(board.grid, now_ms)
+            self._was_settled = False
+        ops = self._flap.tick(now_ms)
+        if ops:
+            self._view.paint(ops)
+        # After paint, and on the same clock tick() just consumed:
+        # folds() describes the gap between the landings tick()
+        # reports, so a stale clock would draw a card that has
+        # already arrived.
+        if animate:
+            self._view.fold(self._flap.folds(now_ms))
+        settled = self._flap.settled
+        if settled and not self._was_settled:
+            rotator.settled(now)
+            self._was_settled = True
+        return settled
 
     def onAction(self, action: xbmcgui.Action) -> None:
         self._stop = True

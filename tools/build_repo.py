@@ -82,7 +82,7 @@ def write_listing(directory: pathlib.Path) -> None:
         for p in entries
     )
     (directory / "index.html").write_text(
-        "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
+        "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
         f"<title>{directory.name}</title></head>\n"
         f"<body><h1>{directory.name}</h1>\n<ul>\n{rows}\n</ul></body></html>\n",
         encoding="utf-8",
