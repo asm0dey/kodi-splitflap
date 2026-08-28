@@ -91,8 +91,11 @@ def main() -> int:
 
     xml = ET.tostring(index, encoding="utf-8", xml_declaration=True)
     (DOCS / "addons.xml").write_bytes(xml)
-    # md5 because Kodi requires it, not as a security choice
-    digest = hashlib.md5(xml).hexdigest()
+    # md5 because the Kodi repository FORMAT requires an addons.xml.md5
+    # beside addons.xml -- it is a transport checksum Kodi itself verifies,
+    # not a security control, and no other digest is accepted. The explicit
+    # usedforsecurity=False says so to the interpreter and to scanners.
+    digest = hashlib.md5(xml, usedforsecurity=False).hexdigest()
     (DOCS / "addons.xml.md5").write_text(digest, encoding="utf-8")
     print(f"\naddons.xml  {len(addons)} add-ons, md5 {digest}")
     return 0

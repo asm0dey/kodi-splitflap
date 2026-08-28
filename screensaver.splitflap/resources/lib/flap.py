@@ -103,49 +103,55 @@ class FlapMachine:
                 )
             for c, raw_target in enumerate(row):
                 idx = r * self._cols + c
-                cell = self._cells[idx]
-                # A target absent from this drum (e.g. a glyph the source
-                # text contains but the active charset/pack does not cover)
-                # would otherwise raise KeyError deep in Drum.distance.
-                # Tofu is itself always on the drum (glyphs.GlyphIndex
-                # guarantees the tofu glyph is bundled), so substituting it
-                # here is the target-side counterpart to `Drum._pos`
-                # treating an unknown CURRENT character as blank.
-                target = raw_target if self._drum.contains(raw_target) else TOFU
-                # Retarget from what is VISIBLY on the top half, not from
-                # cell.char -- which tracks the bottom and lags by one for
-                # the whole walk. Retargeting from the stale bottom value
-                # would walk the drum backward from what the viewer sees.
-                cur = cell.top_char
-                seq = self._drum.sequence(cur, target, self._max_steps)
-                if not seq:
-                    # The top already shows the new target. The bottom may
-                    # still trail it, and abandoning the walk now would strand
-                    # the tile permanently mismatched -- top on the target,
-                    # bottom on whatever it last landed. Give it a one-entry
-                    # sequence so the bottom converges.
-                    if cell.char != cell.top_char:
-                        cell.seq = (cell.top_char, cell.top_char)
-                        cell.step = 0
-                        cell.phase = 1
-                    else:
-                        cell.seq = ()
-                        cell.step = 0
-                        cell.phase = 0
-                    continue
-                # Padded with a repeat of the target: the bottom half trails
-                # the top by one entry, so it needs one extra step to land on
-                # the same character. The duplicated top op is suppressed in
-                # tick(), so this costs no visible frame and no setImage.
-                cell.seq = (*seq, seq[-1])
-                cell.step = 0
-                cell.phase = 0
-                stagger = (
-                    c * self._col_delay
-                    + r * self._row_delay
-                    + (idx * 7919) % (self._jitter + 1)   # deterministic jitter
-                )
-                cell.start_ms = now_ms + stagger
+                self._aim(self._cells[idx], raw_target, idx, r, c, now_ms)
+
+    def _aim(self, cell: _Cell, raw_target: str, idx: int,
+             r: int, c: int, now_ms: int) -> None:
+        """Point one cell at one character, and set when its walk starts."""
+        # A target absent from this drum (e.g. a glyph the source text
+        # contains but the active charset/pack does not cover) would
+        # otherwise raise KeyError deep in Drum.distance. Tofu is itself
+        # always on the drum (glyphs.GlyphIndex guarantees the tofu glyph
+        # is bundled), so substituting it here is the target-side
+        # counterpart to `Drum._pos` treating an unknown CURRENT character
+        # as blank.
+        target = raw_target if self._drum.contains(raw_target) else TOFU
+        # Walk from what is VISIBLY on the top half, not from cell.char --
+        # which tracks the bottom and lags by one for the whole walk.
+        # Starting from the stale bottom value would walk the drum backward
+        # from what the viewer sees.
+        seq = self._drum.sequence(cell.top_char, target, self._max_steps)
+        if not seq:
+            self._converge(cell)
+            return
+        # Padded with a repeat of the target: the bottom half trails the top
+        # by one entry, so it needs one extra step to land on the same
+        # character. The duplicated top op is suppressed in tick(), so this
+        # costs no visible frame and no setImage.
+        cell.seq = (*seq, seq[-1])
+        cell.step = 0
+        cell.phase = 0
+        cell.start_ms = now_ms + (
+            c * self._col_delay
+            + r * self._row_delay
+            + (idx * 7919) % (self._jitter + 1)   # deterministic jitter
+        )
+
+    @staticmethod
+    def _converge(cell: _Cell) -> None:
+        """The top already shows the target; let the bottom catch up.
+
+        Abandoning the walk outright would strand the tile permanently
+        mismatched -- top on the target, bottom on whatever it last landed
+        -- so a bottom that still trails gets a one-entry sequence.
+        """
+        cell.step = 0
+        if cell.char != cell.top_char:
+            cell.seq = (cell.top_char, cell.top_char)
+            cell.phase = 1
+        else:
+            cell.seq = ()
+            cell.phase = 0
 
     def tick(self, now_ms: int) -> list[PaintOp]:
         ops: list[PaintOp] = []
@@ -160,30 +166,33 @@ class FlapMachine:
                 due = cell.start_ms + (cell.step * 2 + cell.phase) * half_ms
                 if due > now_ms:
                     break
-                char = cell.seq[cell.step]
-                if cell.phase == 0:
-                    # The top shows the incoming character. Skipped when it
-                    # already does -- the sequence's padded final entry
-                    # repeats the target, and repainting it would cost a
-                    # setImage for no visible change.
-                    if char != cell.top_char:
-                        ops.append(PaintOp(idx, "top", char))
-                        cell.top_char = char
-                    cell.phase = 1
-                else:
-                    # The bottom trails the top by one entry for the whole
-                    # walk, converging only on the last step. That sustained
-                    # mismatch IS the hinge: resolving it every step made the
-                    # tile show a clean settled letter between every pair of
-                    # frames, which reads as letters changing rather than a
-                    # card falling.
-                    if cell.step > 0:
-                        trailing = cell.seq[cell.step - 1]
-                        ops.append(PaintOp(idx, "bottom", trailing))
-                        cell.char = trailing
-                    cell.phase = 0
-                    cell.step += 1
+                self._half_step(ops, idx, cell)
         return ops
+
+    @staticmethod
+    def _half_step(ops: list[PaintOp], idx: int, cell: _Cell) -> None:
+        """Retire one half-step: phase 0 paints the top, phase 1 the bottom."""
+        if cell.phase == 0:
+            # The top shows the incoming character. Skipped when it already
+            # does -- the sequence's padded final entry repeats the target,
+            # and repainting it would cost a setImage for no visible change.
+            char = cell.seq[cell.step]
+            if char != cell.top_char:
+                ops.append(PaintOp(idx, "top", char))
+                cell.top_char = char
+            cell.phase = 1
+            return
+        # The bottom trails the top by one entry for the whole walk,
+        # converging only on the last step. That sustained mismatch IS the
+        # hinge: resolving it every step made the tile show a clean settled
+        # letter between every pair of frames, which reads as letters
+        # changing rather than a card falling.
+        if cell.step > 0:
+            trailing = cell.seq[cell.step - 1]
+            ops.append(PaintOp(idx, "bottom", trailing))
+            cell.char = trailing
+        cell.phase = 0
+        cell.step += 1
 
     def current_grid(self) -> tuple[str, ...]:
         return tuple(

@@ -13,16 +13,30 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -e ".[dev]"
-      - run: python -m ruff check .
-      - run: python -m pyright
+      # Pinned by commit SHA: a mutable tag lets the action's owner
+      # change what runs in CI after review. Renovate tracks the
+      # trailing version comment.
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      # uv.lock is committed and Renovate-maintained, but `pip install -e`
+      # ignored it and re-resolved every dependency on every run -- so CI
+      # tested whatever happened to be newest on PyPI that morning, not the
+      # pinned set. `--locked` installs the lockfile exactly and fails if
+      # the lock has drifted from pyproject.toml, and uv installs from
+      # wheels rather than executing sdist setup scripts.
+      # --no-install-project + --no-build: every dependency comes from a
+      # wheel named in the lockfile, and nothing runs a setup script. The
+      # project itself is never built because pytest resolves its imports
+      # through pythonpath in pyproject.toml, not through an install.
+      - run: uv sync --locked --extra dev --no-install-project --no-build
+      - run: uv run --no-sync --no-build ruff check .
+      - run: uv run --no-sync --no-build pyright
       # Tests that read bundled data skip in a copied tree (a mutation
       # runner). In CI they must all run -- a skip here means the data is
       # genuinely missing, which is a packaging regression.
-      - run: python -m pytest -v --strict-markers -W error::UserWarning
+      - run: uv run --no-sync --no-build pytest -v --strict-markers -W error::UserWarning
       - name: no tests were skipped
         run: |
-          python -m pytest -q 2>&1 | tee /tmp/pytest.out
+          uv run --no-sync --no-build pytest -q 2>&1 | tee /tmp/pytest.out
           if grep -qE '[0-9]+ skipped' /tmp/pytest.out; then
             echo "Tests were skipped in CI; bundled data is likely missing."
             exit 1

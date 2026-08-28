@@ -221,12 +221,11 @@ def _shaded_card(half_w: int, half_h: int, full_h: int) -> "Image":
     for half_top in (0, half_h):
         draw.line([(0, half_top), (half_w, half_top)], fill=CARD_VALUE + EDGE_LIGHT)
 
-    _draw_mounting(draw, half_w, half_h, full_h, CARD_VALUE)
+    _draw_mounting(draw, half_w, half_h, full_h)
     return card
 
 
-def _draw_mounting(draw, half_w: int, half_h: int, full_h: int,
-                   card_value: int) -> None:
+def _draw_mounting(draw, half_w: int, half_h: int, full_h: int) -> None:
     """The notch and side lugs that mount a flap on its axle.
 
     Drawn on both halves so a tile reads as hardware from either face, and
