@@ -253,3 +253,52 @@ def test_landing_page_offers_every_addon():
     assert all(ids), "an addon in addons.xml has no id"
     missing = [i for i in ids if i and i not in text]
     assert not missing, f"add-ons in the repo but absent from the page: {missing}"
+
+
+PAGES_BASE = "https://asm0dey.github.io/kodi-splitflap/"
+
+
+def _link_targets(text, relative_root):
+    """Every link a reader can follow, resolved to a path on disk.
+
+    Two spellings reach the same file and both have to be checked. The
+    landing page links relatively (`repo/x/y.zip`) because it is served from
+    inside docs/; the README must use the absolute site URL to work on
+    GitHub. Absolute site links always resolve under docs/, while a relative
+    link resolves against whatever directory its own file sits in -- which
+    is why `relative_root` is a parameter and not a constant.
+    """
+    import re
+    docs = _repo() / "docs"
+    out = []
+    for link in re.findall(r"\]\(([^)]+)\)", text):
+        if link.startswith(PAGES_BASE):
+            out.append((link, docs / link[len(PAGES_BASE):]))
+        elif not link.startswith(("http://", "https://", "#")):
+            out.append((link, relative_root / link))
+    return out
+
+
+def test_readme_links_resolve():
+    """The README's add-on links must point at files, not directories.
+
+    They are absolute site URLs, so nothing local resolves them and a rename
+    or a link to a bare directory 404s silently -- which is exactly how three
+    dead add-on links shipped. Resolve them against docs/ instead.
+    """
+    text = (_repo() / "README.md").read_text(encoding="utf-8")
+    targets = _link_targets(text, _repo())
+    assert targets, "no followable links found -- the regex stopped matching"
+    broken = [link for link, path in targets if not path.is_file()]
+    assert not broken, f"README links to missing files or directories: {broken}"
+
+
+def test_readme_offers_every_addon():
+    """Each add-on in the repository index is reachable from the README."""
+    import xml.etree.ElementTree as ET
+    text = (_repo() / "README.md").read_text(encoding="utf-8")
+    root = ET.parse(_repo() / "docs" / "repo" / "addons.xml").getroot()
+    ids = [a.get("id") for a in root.findall("addon")]
+    assert all(ids), "an addon in addons.xml has no id"
+    missing = [i for i in ids if i and i not in text]
+    assert not missing, f"add-ons in the repo but absent from the README: {missing}"
