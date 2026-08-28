@@ -27,6 +27,9 @@
         <setting id="accent_colour" type="string" label="30014">
           <level>1</level><default>2B5CE6</default><control type="edit" format="string"/>
         </setting>
+        <setting id="animate_flaps" type="boolean" label="30015">
+          <level>0</level><default>true</default><control type="toggle"/>
+        </setting>
       </group>
     </category>
     <category id="content" label="30002">

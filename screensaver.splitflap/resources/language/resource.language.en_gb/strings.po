@@ -35,6 +35,10 @@ msgctxt "#30014"
 msgid "Accent colour (RRGGBB)"
 msgstr ""
 
+msgctxt "#30015"
+msgid "Animate the falling card"
+msgstr ""
+
 msgctxt "#30020"
 msgid "Show"
 msgstr ""

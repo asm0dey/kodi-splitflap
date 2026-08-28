@@ -28,6 +28,7 @@ def read() -> dict[str, Any]:
         "rows": get_int("rows"),
         "hold_seconds": get_int("hold_seconds"),
         "max_steps": get_int("max_steps"),
+        "animate_flaps": get_bool("animate_flaps"),
         "letter_colour": get("letter_colour") or "E8E8E8",
         "accent_colour": get("accent_colour") or "2B5CE6",
         "source": get("source") or "liveinfo",

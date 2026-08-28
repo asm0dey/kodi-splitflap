@@ -166,3 +166,94 @@ def test_off_charset_text_renders_as_tofu_instead_of_crashing():
     )
     assert m.settled
     assert TOFU in "".join(m.current_grid())
+
+
+# --- folds(): the card in the air, for the falling-flap overlay ------------
+#
+# tick() says what a half has LANDED on; folds() says what is between those
+# landings. A card falls in one half-step -- the top op releases it, the
+# bottom op a half-step later is it arriving -- and then rests until the
+# next flap. Every case below calls folds() only after tick() on the same
+# clock, which is the documented contract.
+
+def folding(m, t):
+    """tick then fold at one instant, as the render loop does."""
+    m.tick(t)
+    return m.folds(t)
+
+
+def test_nothing_is_in_flight_before_a_retarget():
+    assert folding(machine(), 0) == []
+
+
+def test_a_settled_board_has_no_card_in_flight():
+    m = machine(cols=1, chars="12 ")
+    m.retarget(("1",))
+    drain(m)
+    assert m.settled
+    assert m.folds(10 ** 6) == []
+
+
+def test_the_falling_card_carries_the_face_it_takes_away():
+    """A card falls face-out: what leaves the top half is what the eye
+    follows, and its back is the same character's bottom half -- which is
+    exactly what the bottom op paints when it lands."""
+    m = machine(cols=1, chars="AB ")
+    m.retarget(("B",), now_ms=0)
+    folding(m, 0)                       # first card: blank leaving
+    assert [(f.cell, f.half, f.char) for f in folding(m, 200)] == [(0, "top", "A")]
+    assert [f.char for f in folding(m, 250)] == ["A"]
+    assert [o.char for o in m.tick(300) if o.half == "bottom"] == ["A"]
+
+
+def test_the_card_foreshortens_then_closes_over_the_bottom():
+    m = machine(cols=1, chars="12 ")
+    m.retarget(("1",), now_ms=0)
+    assert [(f.half, f.progress) for f in folding(m, 0)] == [("top", 0.0)]
+    assert [(f.half, f.progress) for f in folding(m, 25)] == [("top", 0.5)]
+    assert [(f.half, f.progress) for f in folding(m, 50)] == [("bottom", 0.0)]
+    assert [(f.half, f.progress) for f in folding(m, 75)] == [("bottom", 0.5)]
+
+
+def test_the_card_rests_between_flaps():
+    """It lands a half-step after it is released and stays down until the
+    next flap. Painting it through the rest half-step would stretch a
+    200ms-apart pair of flaps into one continuous smear."""
+    m = machine(cols=1, chars="AB ")
+    m.retarget(("B",), now_ms=0)
+    assert folding(m, 100) == []
+    assert folding(m, 150) == []
+
+
+def test_the_last_card_of_a_walk_still_falls():
+    m = machine(cols=1, chars="AB ")
+    m.retarget(("B",), now_ms=0)
+    for t in range(0, 250, 25):
+        folding(m, t)
+    assert [(f.half, f.char) for f in folding(m, 250)] == [("bottom", "A")]
+
+
+def test_a_cell_that_has_not_started_yet_has_nothing_in_flight():
+    """Staggered columns: cell 0 is already falling while cell 2 waits. A
+    cell must never paint a card before its own start."""
+    m = FlapMachine(Drum("AB "), rows=1, cols=3,
+                    col_delay_ms=60, row_delay_ms=0, jitter_ms=0)
+    m.retarget(("AAA",), now_ms=0)
+    assert {f.cell for f in folding(m, 0)} == {0}
+
+
+def test_progress_never_leaves_the_zero_to_one_range():
+    m = machine(cols=3, chars="AB C123")
+    m.retarget(("A1B",), now_ms=0)
+    for t in range(0, 3000, 17):
+        for f in folding(m, t):
+            assert 0.0 <= f.progress <= 1.0, f
+
+
+def test_unchanged_cells_keep_nothing_in_flight():
+    m = machine(cols=3, chars="AB ")
+    m.retarget(("AAA",), now_ms=0)
+    drain(m)
+    m.retarget(("ABA",), now_ms=1000)
+    for t in range(1000, 2000, 25):
+        assert {f.cell for f in folding(m, t)} <= {1}

@@ -26,7 +26,7 @@ import xbmcgui
 
 from .charset import BLANK
 from .colour import FALLBACK_ARGB, to_argb
-from .flap import PaintOp
+from .flap import FoldOp, PaintOp
 from .geometry import HALVES, SKIN_H, SKIN_W, Cell, Geometry, Half
 from .glyphs import GlyphIndex
 
@@ -42,6 +42,15 @@ class BoardView:
         self._letter = self._resolve_colour("letter", letter_colour)
         self._accent = self._resolve_colour("accent", accent_colour)
         self._halves: dict[tuple[int, str], xbmcgui.ControlImage] = {}
+        # One overlay per cell for the card in flight, plus the geometry it
+        # is animated within: (x, hinge y, width, half height). Kept here
+        # rather than recomputed per frame -- fold() runs on every frame of
+        # a transition and half_rect does integer arithmetic per call.
+        self._leaves: dict[int, xbmcgui.ControlImage] = {}
+        self._leaf_rect: dict[int, tuple[int, int, int, int]] = {}
+        # Which leaves are currently visible, so a frame only pays for the
+        # cells whose visibility actually changes.
+        self._folding: frozenset[int] = frozenset()
         self._accent_cells: frozenset[int] = frozenset()
         # What character each half last displayed. Needed because an accent
         # change repaints a cell without a flap op to tell it what to show.
@@ -81,6 +90,7 @@ class BoardView:
         # Typed as the base Control: addControls takes List[Control], and
         # list is invariant, so the narrower element type is rejected.
         controls: list[xbmcgui.Control] = []
+        leaves: list[xbmcgui.Control] = []
         for row in range(self._geo.rows):
             for col in range(self._geo.cols):
                 cell = self._geo.cell_index(row, col)
@@ -91,8 +101,22 @@ class BoardView:
                     control = self._make_control(x, y, w, h, texture, self._letter)
                     self._halves[(cell, half)] = control
                     controls.append(control)
+                x, y, w, h = self._geo.half_rect(row, col, "top")
+                leaf = self._make_control(x, y, w, h, blank_top, self._letter)
+                leaf.setVisible(False)
+                self._leaves[cell] = leaf
+                self._leaf_rect[cell] = (x, y + h, w, h)
+                leaves.append(leaf)
         self._window.addControls(controls)
-        xbmc.log(f"splitflap: built {len(controls)} controls", xbmc.LOGDEBUG)
+        # Added after the halves, so the card in flight draws over the two
+        # faces it is moving between rather than under them.
+        self._window.addControls(leaves)
+        self._folding = frozenset()
+        xbmc.log(
+            f"splitflap: built {len(controls)} controls "
+            f"and {len(leaves)} leaves",
+            xbmc.LOGDEBUG,
+        )
 
     def _build_frame(self) -> None:
         """The housing the board is mounted in, drawn behind the tiles.
@@ -225,6 +249,41 @@ class BoardView:
             control.setImage(self._texture(op.cell, op.half, op.char),
                              useCache=True)
             control.setColorDiffuse(self._colour(op.cell))
+
+    def fold(self, ops: Iterable[FoldOp]) -> None:
+        """Draw the cards currently in the air; hide the ones that landed.
+
+        The leaf is a control of its own, so this never writes a half's
+        texture and `paint` stays the single authority on the settled faces
+        -- the two-writer defect `set_accents` documents is not reintroduced
+        here. An empty batch (a settled board) hides everything and costs
+        one pass over what was visible.
+        """
+        showing: set[int] = set()
+        for op in ops:
+            leaf = self._leaves.get(op.cell)
+            if leaf is None:
+                continue
+            x, hinge, _w, half_h = self._leaf_rect[op.cell]
+            # Above the hinge the card foreshortens away to nothing; below
+            # it, its back face grows into place. One pixel minimum: a
+            # zero-height control is a Kodi-side edge case, and the card is
+            # about to be hidden or grown anyway.
+            grown = op.progress if op.half == "bottom" else 1.0 - op.progress
+            h = max(1, int(half_h * grown))
+            leaf.setImage(self._texture(op.cell, op.half, op.char),
+                          useCache=True)
+            leaf.setColorDiffuse(self._colour(op.cell))
+            leaf.setPosition(x, hinge if op.half == "bottom" else hinge - h)
+            leaf.setHeight(h)
+            if op.cell not in self._folding:
+                leaf.setVisible(True)
+            showing.add(op.cell)
+        for cell in self._folding - showing:
+            leaf = self._leaves.get(cell)
+            if leaf is not None:
+                leaf.setVisible(False)
+        self._folding = frozenset(showing)
 
     def _texture(self, cell: int, half: Half, char: str) -> str:
         if cell in self._accent_cells:

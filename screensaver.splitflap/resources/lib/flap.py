@@ -26,10 +26,35 @@ ROW_DELAY_MS = 40
 JITTER_MS = 12
 
 
+def _fraction(elapsed: float, span: float) -> float:
+    """`elapsed`/`span`, clamped. Clamped rather than asserted because a
+    caller that folds without ticking (or on a clock that jumped) should
+    show a card at rest, not raise mid-frame."""
+    if span <= 0:
+        return 1.0
+    return min(1.0, max(0.0, elapsed / span))
+
+
 class PaintOp(NamedTuple):
     cell: int
     half: Half         # never a bool
     char: str
+
+
+class FoldOp(NamedTuple):
+    """One card mid-air, between the two landings a PaintOp pair describes.
+
+    `half` is both the region the card covers and the glyph half it shows:
+    "top" is the card still above the hinge, foreshortening away and
+    carrying the face it is taking with it; "bottom" is the same card past
+    the hinge, its back face growing into place. `progress` runs 0 -> 1
+    across that one half-step.
+    """
+
+    cell: int
+    half: Half
+    char: str
+    progress: float
 
 
 @dataclasses.dataclass(slots=True)
@@ -41,6 +66,10 @@ class _Cell:
     # and after that the two diverge for exactly one half-step -- the hinge.
     top_char: str = dataclasses.field(init=False)
     seq: tuple[str, ...] = ()
+    # The face the card in flight carries away. Only folds() reads it: the
+    # top half is repainted before the card has finished falling, so the
+    # outgoing character has to be kept somewhere or it is unrecoverable.
+    fold_from: str = ""
     step: int = 0
     phase: int = 0              # 0 = top pending, 1 = bottom pending
     start_ms: int = 0
@@ -184,6 +213,7 @@ class FlapMachine:
             # does -- the sequence's padded final entry repeats the target,
             # and repainting it would cost a setImage for no visible change.
             char = cell.seq[cell.step]
+            cell.fold_from = cell.top_char
             if char != cell.top_char:
                 ops.append(PaintOp(idx, "top", char))
                 cell.top_char = char
@@ -200,6 +230,33 @@ class FlapMachine:
             cell.char = trailing
         cell.phase = 0
         cell.step += 1
+
+    def folds(self, now_ms: int) -> list[FoldOp]:
+        """The card each cell has in the air right now, for the overlay.
+
+        Call it after `tick` on the same clock: `tick` retires everything
+        due, so this only ever describes the interval between two landings.
+
+        A card is released by the top op and lands with the bottom op a
+        half-step later, so exactly one half-step of every step has a card
+        in it -- phase 1. Both of that card's faces are the character the
+        top half just gave up, which is why one `char` covers the whole
+        fall. In the rest half-step, and for cells that are settled or not
+        yet started, nothing is in flight and the overlay stays hidden.
+        """
+        half_ms = self._step_ms / 2
+        out: list[FoldOp] = []
+        for idx, cell in enumerate(self._cells):
+            if not cell.busy or cell.phase != 1:
+                continue
+            fallen = _fraction(
+                now_ms - (cell.start_ms + cell.step * 2 * half_ms), half_ms)
+            if fallen < 0.5:
+                out.append(FoldOp(idx, "top", cell.fold_from, fallen * 2))
+            else:
+                out.append(FoldOp(idx, "bottom", cell.fold_from,
+                                  (fallen - 0.5) * 2))
+        return out
 
     def current_grid(self) -> tuple[str, ...]:
         return tuple(

@@ -63,6 +63,7 @@ Split-Flap Board actually wins the race.
 | Maximum flap steps | Caps how many drum positions a cell steps through per transition, so a long jump around the drum doesn't take forever to settle. |
 | Letter colour (RRGGBB) | Tile lettering colour. |
 | Accent colour (RRGGBB) | Colour used for accented cells (e.g. an author line, a corner marker). |
+| Animate the falling card | Draws the card itself falling through the hinge, rather than only the two faces it moves between. Costs a faster render loop while a board is in transition; turn it off on a slow box. |
 | Show | What the board displays: live info, phrases, or an installed contributor add-on (see "Writing a source add-on" below). One at a time — they never interleave. |
 | Time / Date / Weather / Now playing | Which live-info fields are shown, when Show is set to live info. |
 | Combine onto one board | Whether the enabled live-info fields share one board, or rotate across separate boards. |

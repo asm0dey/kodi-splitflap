@@ -32,6 +32,11 @@ if TYPE_CHECKING:
     from resources.lib.sources.discovery import _SourceLike
 
 FRAME_MS = 50
+# A card falls in 100ms, so 50ms frames would show it at two positions and
+# read as a stutter rather than a fall. Paid only while something is moving:
+# a settled board is still ticked at FRAME_MS, and the whole transition is
+# about a second.
+FOLD_FRAME_MS = 25
 # Bounded generously against the 50ms frame period: a join this long is
 # imperceptible, but it still guarantees `del window` never races a thread
 # still touching controls, without risking a hung shutdown if the thread is
@@ -169,6 +174,7 @@ class Screensaver(xbmcgui.WindowXMLDialog):
                 log=log,
             )
             monitor = xbmc.Monitor()
+            animate = cfg["animate_flaps"]
             was_settled = True
             while not self._stop and not monitor.abortRequested():
                 if not xbmc.getCondVisibility("System.ScreenSaverActive"):
@@ -198,10 +204,18 @@ class Screensaver(xbmcgui.WindowXMLDialog):
                 ops = self._flap.tick(now_ms)
                 if ops:
                     self._view.paint(ops)
-                if self._flap.settled and not was_settled:
+                # After paint, and on the same clock tick() just consumed:
+                # folds() describes the gap between the landings tick()
+                # reports, so a stale clock would draw a card that has
+                # already arrived.
+                if animate:
+                    self._view.fold(self._flap.folds(now_ms))
+                settled = self._flap.settled
+                if settled and not was_settled:
                     rotator.settled(now)
                     was_settled = True
-                if monitor.waitForAbort(FRAME_MS / 1000.0):
+                period = FRAME_MS if settled or not animate else FOLD_FRAME_MS
+                if monitor.waitForAbort(period / 1000.0):
                     break
         except Exception:
             log_error("render loop failed")
