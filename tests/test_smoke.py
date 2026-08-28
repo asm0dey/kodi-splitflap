@@ -212,3 +212,44 @@ def test_served_repository_zips_are_tracked_by_git():
     assert not ignored, (
         f"served zips are gitignored, so Pages cannot serve them: {ignored}"
     )
+
+
+def test_landing_page_links_resolve():
+    """Every relative link on the Pages index must point at a real file.
+
+    The install links are version-stamped, so a release renames the zip they
+    point at and the page keeps serving a 404 -- silently, because GitHub
+    Pages has no directory listing to fall back on. This is the check that
+    turns that into a build failure.
+    """
+    import re
+    docs = _repo() / "docs"
+    text = (docs / "index.md").read_text(encoding="utf-8")
+    links = re.findall(r"\]\(([^)]+)\)", text)
+    relative = [x for x in links if not x.startswith(("http://", "https://", "#"))]
+    assert relative, "no relative links found -- the regex stopped matching"
+    missing = [x for x in relative if not (docs / x).exists()]
+    assert not missing, f"landing page links to missing files: {missing}"
+
+
+def test_landing_page_links_no_directories():
+    """A link to a directory 404s on GitHub Pages -- there is no index."""
+    import re
+    docs = _repo() / "docs"
+    text = (docs / "index.md").read_text(encoding="utf-8")
+    dirs = [x for x in re.findall(r"\]\(([^)]+)\)", text)
+            if not x.startswith(("http://", "https://", "#"))
+            and (docs / x).is_dir()]
+    assert not dirs, f"landing page links to directories, which 404: {dirs}"
+
+
+def test_landing_page_offers_every_addon():
+    """Each add-on in the repository index is reachable from the page."""
+    import xml.etree.ElementTree as ET
+    docs = _repo() / "docs"
+    text = (docs / "index.md").read_text(encoding="utf-8")
+    root = ET.parse(docs / "repo" / "addons.xml").getroot()
+    ids = [a.get("id") for a in root.findall("addon")]
+    assert all(ids), "an addon in addons.xml has no id"
+    missing = [i for i in ids if i and i not in text]
+    assert not missing, f"add-ons in the repo but absent from the page: {missing}"
