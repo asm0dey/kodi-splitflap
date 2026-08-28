@@ -179,6 +179,26 @@ Return any object with a `next()` method; a plain dict with `lines`,
 `{"before_line": n}`, `{"corner": "top-left"}` — or explicitly with
 `{"cell": [row, col]}`.
 
+Want your editor to check that shape? Copy this into your own add-on —
+it is stdlib only, so it adds no dependency on this one:
+
+```python
+from typing import Literal, Sequence, TypedDict
+
+class Accent(TypedDict, total=False):
+    before_line: int
+    corner: Literal["top-left", "top-right", "bottom-left", "bottom-right"]
+    cell: Sequence[int]
+
+class ContentDict(TypedDict, total=False):
+    lines: Sequence[str]
+    accents: Sequence[Accent]
+    refresh_in: float | None
+```
+
+Every key is optional; anything you leave out gets the same default an
+omitted argument would.
+
 Keep `next()` fast. It runs on the render loop, and a source that raises is
 disabled for the session while a source that **hangs** freezes the
 screensaver.

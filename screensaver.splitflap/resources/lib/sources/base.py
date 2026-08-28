@@ -10,7 +10,7 @@ layer. refresh_in is what stops a fast poll racing the phrase list.
 """
 import dataclasses
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, TypedDict
 
 from ..layout import Accent
 
@@ -36,7 +36,23 @@ class Content:
         object.__setattr__(self, "accents", tuple(self.accents))
 
 
-def coerce(value: Any) -> Content:
+class ContentDict(TypedDict, total=False):
+    """The dict form of Content, for contributors.
+
+    A contributor is a separate add-on: it cannot import Content without
+    declaring a dependency on us, which the discovery design exists to
+    avoid. So it answers with a plain dict -- and TypedDict is stdlib, so
+    it can COPY these six lines into its own source and have its editor
+    check the shape without importing anything of ours. total=False
+    because every key is optional; coerce() defaults what is missing.
+    """
+
+    lines: Sequence[str]
+    accents: Sequence[Accent]
+    refresh_in: float | None
+
+
+def coerce(value: Content | ContentDict | Any) -> Content:
     """Whatever a source answered, as a Content.
 
     Contributors are documented as being able to return "any object with a
