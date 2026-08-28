@@ -130,3 +130,55 @@ def test_chars_from_cannot_escape_its_root(tmp_path):
     link.symlink_to(outside)
     with pytest.raises(ValueError, match="under"):
         read_chars_file(str(link), root=str(root))
+
+
+def test_chars_from_resists_traversal(tmp_path):
+    """Every traversal vector the SonarCloud S8707 report implies.
+
+    The finding is a false positive -- the engine does not model
+    os.path.commonpath as a sanitizer -- and this is the evidence for that
+    claim, so it is pinned here rather than argued in a comment thread.
+    """
+    from tools.make_glyph_pack import read_chars_file
+
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "ok.txt").write_text("AB", encoding="utf-8")
+
+    secret = tmp_path / "SECRET.txt"
+    secret.write_text("TOPSECRET", encoding="utf-8")
+
+    # A sibling whose name merely STARTS WITH the root's: the classic
+    # startswith() prefix bug that commonpath does not have.
+    sibling = tmp_path / "root-evil"
+    sibling.mkdir()
+    (sibling / "f.txt").write_text("EVIL", encoding="utf-8")
+
+    (root / "link.txt").symlink_to(secret)          # symlink out of the root
+    (root / "outdir").symlink_to(tmp_path)          # symlinked DIRECTORY out
+
+    escapes = (
+        str(secret),                                # absolute
+        str(root / ".." / "SECRET.txt"),            # ..
+        str(root / "." / ".." / "SECRET.txt"),      # ./..
+        str(sibling / "f.txt"),                     # prefix confusion
+        str(root / "link.txt"),                     # symlink target
+        str(root / "outdir" / "SECRET.txt"),        # symlinked directory
+        "~/.ssh/id_rsa",                            # ~ is not expanded
+    )
+    for attack in escapes:
+        with pytest.raises(ValueError, match="under"):
+            read_chars_file(attack, root=str(root))
+
+    # Stays inside the root ('....' is a literal directory name), so it is
+    # refused by the regular-file check rather than the containment one.
+    with pytest.raises(ValueError, match="readable file"):
+        read_chars_file(str(root / "....//....//etc/passwd"), root=str(root))
+
+    # An embedded null cannot reach open(); the OS layer rejects it first.
+    with pytest.raises(ValueError):
+        read_chars_file(str(root / "ok.txt") + "\x00/etc/passwd",
+                        root=str(root))
+
+    # ...and the legitimate read still works.
+    assert read_chars_file(str(root / "ok.txt"), root=str(root)) == "AB"
