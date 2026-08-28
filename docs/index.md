@@ -4,6 +4,9 @@ title: Split-Flap Board
 
 # Split-Flap Board for Kodi
 
+![A split-flap board reading "SPLIT-FLAP BOARD / A KODI SCREENSAVER", with two
+blue accent tiles and a KODI maker's plate on the housing](banner.png)
+
 A screensaver that renders a mechanical split-flap departure board — the kind
 that used to clatter in railway stations and airports — showing motivational
 phrases, the time, and the weather.

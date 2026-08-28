@@ -1,5 +1,8 @@
 # Split-Flap Board
 
+![A split-flap board reading "SPLIT-FLAP BOARD / A KODI SCREENSAVER", with two
+blue accent tiles and a KODI maker's plate on the housing](docs/banner.png)
+
 A Kodi screensaver that renders a mechanical split-flap (Solari) departure
 board showing phrases, the time, and the weather.
 
