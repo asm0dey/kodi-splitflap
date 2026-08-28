@@ -41,7 +41,3 @@ the box. Anything else shows as tofu (□) until you install a pack, which
 matters on a Fire TV or webOS device where there is no practical way to drop
 files onto the box.
 
-## Fire TV
-
-Fire OS runs its own screensaver. Set Kodi's timeout shorter than Fire OS's, or
-Amazon's photo screensaver wins and you never see this one.
