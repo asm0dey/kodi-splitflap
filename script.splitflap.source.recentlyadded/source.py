@@ -16,8 +16,8 @@ screensaver never dictates how often a source changes.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Callable, Sequence
+from typing import Any, Literal, TypedDict
 
 ADDON_ID = "script.splitflap.source.recentlyadded"
 EMPTY_LINE = "NO RECENT ADDITIONS"
@@ -26,6 +26,29 @@ DEFAULT_LIMIT = 20
 
 Item = dict[str, Any]
 Fetch = Callable[[int], tuple[list[Item], list[Item]]]
+
+
+# The screensaver's content contract, copied rather than imported: a
+# contributor that imported it would have to declare a dependency on the
+# screensaver add-on, which is exactly what its discovery design avoids.
+# TypedDict is stdlib, so the shape costs nothing to restate and our editor
+# checks what we hand over. See the screensaver's README.
+class Accent(TypedDict, total=False):
+    before_line: int
+    corner: Literal["top-left", "top-right", "bottom-left", "bottom-right"]
+    cell: Sequence[int]
+
+
+class ContentDict(TypedDict):
+    """Every key required here: this add-on always fills all three.
+
+    The screensaver's own copy is total=False, because it must accept a
+    contributor that fills in only `lines`.
+    """
+
+    lines: Sequence[str]
+    accents: Sequence[Accent]
+    refresh_in: float | None
 
 
 def merge(movies: list[Item], episodes: list[Item], limit: int) -> list[Item]:
@@ -56,7 +79,14 @@ def _lines_for(item: Item) -> list[str]:
     return lines
 
 
-def format_item(item: Item) -> dict[str, Any]:
+def _empty() -> ContentDict:
+    """The board shown when the library has nothing recent."""
+    return {"lines": [EMPTY_LINE],
+            "accents": [{"before_line": 0}],
+            "refresh_in": None}
+
+
+def format_item(item: Item) -> ContentDict:
     """One board: name, then year or episode code, each with a marker."""
     lines = _lines_for(item)
     return {
@@ -81,7 +111,7 @@ class RecentlyAddedSource:
         self._dwell = max(float(dwell), 0.0)
         self._limit = max(int(limit), 1)
         self._queue: list[Item] = []
-        self._current: dict[str, Any] | None = None
+        self._current: ContentDict | None = None
         self._shown_at = 0.0
 
     def _refill(self) -> None:
@@ -102,18 +132,16 @@ class RecentlyAddedSource:
         if item is not None:
             self._current = format_item(item)
         elif self._current is None:
-            self._current = {"lines": [EMPTY_LINE],
-                             "accents": [{"before_line": 0}],
-                             "refresh_in": None}
+            self._current = _empty()
         self._shown_at = now
 
-    def next(self) -> dict[str, Any]:
+    def next(self) -> ContentDict:
         now = self._clock()
         if self._current is None or now - self._shown_at >= self._dwell:
             self._advance(now)
-        content = dict(self._current or {})
-        content["refresh_in"] = max(self._dwell - (now - self._shown_at), 0.0)
-        return content
+        current = self._current or _empty()
+        return {**current,
+                "refresh_in": max(self._dwell - (now - self._shown_at), 0.0)}
 
 
 def kodi_fetch(limit: int) -> tuple[list[Item], list[Item]]:
