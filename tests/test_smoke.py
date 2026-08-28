@@ -147,10 +147,10 @@ def test_string_settings_with_an_empty_default_allow_empty():
         if not empty:
             continue
         allow = setting.find("./constraints/allowempty")
-        assert allow is not None and allow.text == "true", (
-            f"{setting.get('id')} has an empty default but no allowempty; "
-            "Kodi will drop the setting"
-        )
+        why = (f"{setting.get('id')} has an empty default but no "
+               "allowempty; Kodi will drop the setting")
+        assert allow is not None, why
+        assert allow.text == "true", why
 
 
 def test_lint_and_type_tools_are_pinned():

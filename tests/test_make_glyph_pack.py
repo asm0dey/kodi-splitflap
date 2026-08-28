@@ -77,3 +77,35 @@ def test_warns_when_the_letterset_omits_ascii(tmp_path, capsys):
     build_pack(FONT, "АБ", "resource.images.splitflap.ru", "RU",
                out, 40, 36)
     assert "ascii" in capsys.readouterr().out.lower()
+
+
+def test_addon_id_must_be_a_plain_kodi_id():
+    """`--id` is joined onto a temp root three times; traversal must fail."""
+    from tools.make_glyph_pack import validate_addon_id
+
+    assert validate_addon_id("resource.images.splitflap.nimbus-ru")
+    for bad in ("../../etc", "a/b", "a\\b", ".hidden", "UPPER", "", "x..y"):
+        with pytest.raises(ValueError):
+            validate_addon_id(bad)
+
+
+def test_build_pack_refuses_a_traversing_id(tmp_path):
+    from tools.make_glyph_pack import build_pack
+
+    with pytest.raises(ValueError):
+        build_pack(font=FONT, chars="A", addon_id="../escape", name="x",
+                   out_zip=str(tmp_path / "p.zip"), half_w=8, half_h=8)
+    assert not (tmp_path / "p.zip").exists()
+
+
+def test_chars_from_must_be_a_regular_file(tmp_path):
+    from tools.make_glyph_pack import read_chars_file
+
+    good = tmp_path / "chars.txt"
+    good.write_text("AB", encoding="utf-8")
+    assert read_chars_file(str(good)) == "AB"
+
+    with pytest.raises(ValueError):
+        read_chars_file(str(tmp_path))            # a directory
+    with pytest.raises(ValueError):
+        read_chars_file(str(tmp_path / "nope"))   # missing

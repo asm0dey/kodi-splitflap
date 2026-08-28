@@ -35,7 +35,7 @@ SRC="screensaver.splitflap"
 cp "$SRC/addon.xml" "$SRC/default.py" "$SRC/chooser.py" "build/staging/${ID}/"
 cp LICENSE "build/staging/${ID}/" 2>/dev/null || true
 for asset in icon.png fanart.jpg; do
-  if [ -f "$SRC/$asset" ]; then
+  if [[ -f "$SRC/$asset" ]]; then
     cp "$SRC/$asset" "build/staging/${ID}/"
   else
     echo "warning: ${asset} not found -- shipping without it (addon.xml references it)" >&2

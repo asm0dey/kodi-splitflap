@@ -8,7 +8,6 @@ document, so comments, formatting and attribute order survive untouched.
 import argparse
 import pathlib
 import re
-import sys
 
 ADDON_XML = (pathlib.Path(__file__).resolve().parent.parent
              / "screensaver.splitflap" / "addon.xml")
@@ -52,4 +51,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # main() returns None and reports failure by raising; exiting on its
+    # return value would always be exit 0 dressed up as a status.
+    main()

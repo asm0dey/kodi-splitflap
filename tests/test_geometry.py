@@ -107,6 +107,7 @@ def test_every_cell_lies_inside_the_frame():
         for col in range(g.cols):
             for half in ("top", "bottom"):
                 x, y, w, h = g.half_rect(row, col, half)
-                assert x >= 0 and y >= 0, (row, col, half, x, y)
+                assert x >= 0, (row, col, half, x)
+                assert y >= 0, (row, col, half, y)
                 assert x + w <= 1920, (row, col, half, x, w)
                 assert y + h <= 1080, (row, col, half, y, h)

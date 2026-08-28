@@ -13,16 +13,23 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -e ".[dev]"
-      - run: python -m ruff check .
-      - run: python -m pyright
+      - uses: astral-sh/setup-uv@v7
+      # uv.lock is committed and Renovate-maintained, but `pip install -e`
+      # ignored it and re-resolved every dependency on every run -- so CI
+      # tested whatever happened to be newest on PyPI that morning, not the
+      # pinned set. `--locked` installs the lockfile exactly and fails if
+      # the lock has drifted from pyproject.toml, and uv installs from
+      # wheels rather than executing sdist setup scripts.
+      - run: uv sync --locked --extra dev
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync pyright
       # Tests that read bundled data skip in a copied tree (a mutation
       # runner). In CI they must all run -- a skip here means the data is
       # genuinely missing, which is a packaging regression.
-      - run: python -m pytest -v --strict-markers -W error::UserWarning
+      - run: uv run --no-sync pytest -v --strict-markers -W error::UserWarning
       - name: no tests were skipped
         run: |
-          python -m pytest -q 2>&1 | tee /tmp/pytest.out
+          uv run --no-sync pytest -q 2>&1 | tee /tmp/pytest.out
           if grep -qE '[0-9]+ skipped' /tmp/pytest.out; then
             echo "Tests were skipped in CI; bundled data is likely missing."
             exit 1

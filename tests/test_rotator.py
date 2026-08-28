@@ -68,7 +68,8 @@ def test_raising_source_is_disabled_and_falls_back():
     assert content is not None
     assert content.lines == ("FALLBACK",)
     assert r.failed
-    assert logged and "boom" in logged[0].lower()
+    assert logged
+    assert "boom" in logged[0].lower()
 
 
 def test_disabled_source_is_not_retried_within_the_session():
@@ -203,4 +204,5 @@ def test_an_object_with_the_right_attributes_is_accepted_too():
             return Duck()
 
     content = Rotator(DuckSource(), hold_s=10).poll(0.0)
-    assert content is not None and content.lines == ("QUACK",)
+    assert content is not None
+    assert content.lines == ("QUACK",)

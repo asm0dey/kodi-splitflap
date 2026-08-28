@@ -14,6 +14,7 @@ why this builder warns when ASCII is left out.
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -91,6 +92,42 @@ def charset_for(names: Iterable[str]) -> str:
     return "".join(chars)
 
 
+# Kodi add-on ids are dotted lowercase identifiers. Anchored, and with no
+# separator or dot-dot admitted, so the id can never climb out of the
+# staging directory it names -- every path in build_pack() is built by
+# joining this value onto a temp root.
+_ADDON_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*(\.[a-z0-9][a-z0-9_-]*)*$")
+
+
+def validate_addon_id(addon_id: str) -> str:
+    """Reject anything that is not a plain Kodi add-on id.
+
+    `--id` is joined onto a temp directory three times over, so a value
+    like `../../x` would write outside it. Kodi would refuse such an id at
+    install time anyway; failing here turns a silent traversal into an
+    argument error.
+    """
+    if not _ADDON_ID_RE.match(addon_id):
+        raise ValueError(
+            f"invalid add-on id {addon_id!r}: expected a dotted lowercase "
+            "identifier such as 'resource.images.splitflap.myfont'"
+        )
+    return addon_id
+
+
+def read_chars_file(path: str) -> str:
+    """Read a `--chars-from` file, refusing anything that is not a real file.
+
+    A directory, a device node or a fifo here is a mistake rather than an
+    input, and a fifo would hang the build instead of failing it.
+    """
+    resolved = os.path.realpath(path)
+    if not os.path.isfile(resolved):
+        raise ValueError(f"--chars-from must be a readable file: {path!r}")
+    with open(resolved, encoding="utf-8") as handle:
+        return handle.read()
+
+
 def build_pack(
     font: str,
     chars: str,
@@ -106,6 +143,8 @@ def build_pack(
     install-from-zip requires that shape, and a flat zip silently fails to
     install.
     """
+    validate_addon_id(addon_id)
+
     ascii_set = set(charset_for(["ascii"]))
     if not ascii_set.issubset(set(chars)):
         print(
@@ -150,8 +189,7 @@ def _resolve_chars(args: argparse.Namespace) -> str:
     if args.chars:
         parts.append(args.chars)
     if args.chars_from:
-        with open(args.chars_from, encoding="utf-8") as handle:
-            parts.append(handle.read())
+        parts.append(read_chars_file(args.chars_from))
 
     # str.upper() can expand one character into several (e.g. "SS" for
     # "ß"); upper-casing the combined text before splitting into

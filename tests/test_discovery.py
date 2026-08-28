@@ -47,7 +47,8 @@ def test_addon_missing_create_source_is_skipped_and_logged():
         logged.append,
     )
     assert found == []
-    assert logged and aid in logged[0]
+    assert logged
+    assert aid in logged[0]
 
 
 def test_addon_returning_a_non_source_is_skipped():
