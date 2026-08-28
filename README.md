@@ -41,7 +41,7 @@ Name it `splitflap`, then Install from zip file → splitflap →
 
 Direct downloads, no updates:
 
-- **[screensaver.splitflap](https://asm0dey.github.io/kodi-splitflap/repo/screensaver.splitflap/screensaver.splitflap-0.1.12.zip)** — the screensaver
+- **[screensaver.splitflap](https://asm0dey.github.io/kodi-splitflap/repo/screensaver.splitflap/screensaver.splitflap-0.1.13.zip)** — the screensaver
 - **[resource.images.splitflap.nimbus-ru](https://asm0dey.github.io/kodi-splitflap/repo/resource.images.splitflap.nimbus-ru/resource.images.splitflap.nimbus-ru-1.0.1.zip)** — Cyrillic glyph pack
 - **[script.splitflap.source.recentlyadded](https://asm0dey.github.io/kodi-splitflap/repo/script.splitflap.source.recentlyadded/script.splitflap.source.recentlyadded-0.1.1.zip)** — Recently Added source add-on
 

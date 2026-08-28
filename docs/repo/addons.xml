@@ -27,7 +27,7 @@
     <description lang="en_GB">Split-Flap - Nimbus, Latin + Cyrillic</description>
     <platform>all</platform>
   </extension>
-</addon><addon id="screensaver.splitflap" name="Split-Flap Board" version="0.1.12" provider-name="finkel">
+</addon><addon id="screensaver.splitflap" name="Split-Flap Board" version="0.1.13" provider-name="finkel">
   <requires>
     <import addon="xbmc.python" version="3.0.0" />
   </requires>

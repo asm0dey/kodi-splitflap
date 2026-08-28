@@ -189,3 +189,20 @@ def test_remainder_that_overflows_still_ellipsises():
     assert g[-1].endswith(ELLIPSIS)
     assert len(g[-1]) == 10
     assert g[-1] != " " * 9 + ELLIPSIS
+
+
+def test_text_moves_out_from_under_an_accent():
+    """A full first row would eat the C -- the block re-wraps instead."""
+    b = build(["COURAGE IS RESISTANCE TO FEAR MASTERY OF FEAR NOT ABSENCE OF FEAR",
+               "MARK TWAIN"],
+              [{"corner": "top-left"}, {"corner": "top-right"}], 6, 22)
+    assert (0, 0) in b.accents and (0, 21) in b.accents
+    assert all(b.grid[r][c] == " " for r, c in b.accents)
+    assert "".join(b.grid).replace(" ", "").startswith("COURAGEIS")
+
+
+def test_accent_is_dropped_when_the_text_cannot_move():
+    """Text filling the grid edge to edge keeps its letters, loses the accent."""
+    b = build(["AB"], [{"corner": "top-left"}], 1, 2)
+    assert b.grid[0] == "AB"
+    assert b.accents == frozenset()

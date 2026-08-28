@@ -25,10 +25,37 @@ def build(lines: list[str] | tuple[str, ...],
     # 1. Uppercase the whole string first. Case expansion changes line
     #    length, so it must happen before wrapping.
     upper = [line.upper() for line in lines]
+    board = _compose(upper, accents, rows, cols, cols, rtl)
+    # An accent tile is a solid face with no glyph, so a letter under one is
+    # simply lost. Give the text a narrower wrap and let it re-centre: the
+    # accent keeps its cell and the block moves out from under it.
+    if _collides(board):
+        narrower = _compose(upper, accents, rows, cols, max(1, cols - 2), rtl)
+        # Only take it if it actually clears them -- on a tiny board the
+        # narrower wrap overflows and ellipsises, which is worse.
+        if not _collides(narrower):
+            board = narrower
+    # A block that still cannot clear them (it fills the grid edge to edge)
+    # loses the accent rather than the letter.
+    if _collides(board):
+        board = Board(board.grid, frozenset(
+            c for c in board.accents if board.grid[c[0]][c[1]] == BLANK))
+    return board
+
+
+def _collides(board: Board) -> bool:
+    """True if any accent cell has a letter under it."""
+    return any(board.grid[r][c] != BLANK for r, c in board.accents)
+
+
+def _compose(upper: list[str],
+             accents: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+             rows: int, cols: int, width: int, rtl: bool) -> Board:
+    """Lay the text out at `width`, still centred across all `cols`."""
     # 2-3. Wrap, recording where each source line starts among wrapped lines.
-    wrapped, line_start = _wrap_lines(upper, cols)
+    wrapped, line_start = _wrap_lines(upper, width)
     # 5. Overflow ellipsises rather than paginating.
-    wrapped, truncated = _fit_to_rows(wrapped, rows, cols)
+    wrapped, truncated = _fit_to_rows(wrapped, rows, width)
     # 4. Size the block to its line count and centre it vertically.
     top = (rows - len(wrapped)) // 2
     grid, offsets = _lay_rows(wrapped, rows, cols, top, truncated, rtl)
