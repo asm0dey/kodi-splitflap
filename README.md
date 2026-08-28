@@ -28,14 +28,20 @@ there is no comfortable way to copy a file onto the device again.
 ### Adding it as a source instead
 
 If you would rather Kodi fetch the repository zip itself — Settings → File
-manager → Add source:
+manager → **Add source** → `<None>` → **Add network location**. Kodi splits
+the URL across fields rather than taking it whole:
 
-```
-https://asm0dey.github.io/kodi-splitflap/repo
-```
+| Field | Value |
+|---|---|
+| Protocol | Web server directory (HTTPS) |
+| Server address | `asm0dey.github.io` |
+| Remote path | `kodi-splitflap/repo` |
+| Port | 443 |
 
-Name it `splitflap`, then Install from zip file → splitflap →
-`repository.splitflap/`.
+Leave username and password empty. That builds
+`https://asm0dey.github.io:443/kodi-splitflap/repo`, which lists the four
+add-on directories. Name the source `splitflap`, then Install from zip file
+→ splitflap → `repository.splitflap/`.
 
 ### Just the screensaver
 

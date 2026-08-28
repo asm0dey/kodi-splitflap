@@ -41,15 +41,20 @@ here updates itself from then on.
 
 ### Adding the source URL instead
 
-If you would rather add the repository as a file source:
+If you would rather add the repository as a file source: **Settings → File
+manager → Add source** → `<None>` → **Add network location**. Kodi splits the
+URL across fields rather than taking it whole:
 
-```
-https://asm0dey.github.io/kodi-splitflap/repo
-```
+| Field | Value |
+|---|---|
+| Protocol | Web server directory (HTTPS) |
+| Server address | `asm0dey.github.io` |
+| Remote path | `kodi-splitflap/repo` |
+| Port | 443 |
 
-**Settings → File manager → Add source**, paste the URL, name it
-`splitflap`. This is what the installed repository add-on already uses to
-fetch updates, so step 1 above is the shorter path to the same place.
+Leave username and password empty, then name the source `splitflap`. This is
+the same location the installed repository add-on already uses to fetch
+updates, so step 1 above is the shorter path to the same place.
 
 ### Single add-on, no updates
 
