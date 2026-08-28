@@ -56,13 +56,13 @@ fetch updates, so step 1 above is the shorter path to the same place.
 If you only want the screensaver and do not care about updates, take the zip
 directly — it will not update itself, and you will not get glyph packs:
 
-- [screensaver.splitflap-0.1.13.zip](repo/screensaver.splitflap/screensaver.splitflap-0.1.13.zip)
+- [screensaver.splitflap-0.1.14.zip](repo/screensaver.splitflap/screensaver.splitflap-0.1.14.zip)
 
 ## What's here
 
 | Add-on | What it is |
 |---|---|
-| [`screensaver.splitflap`](repo/screensaver.splitflap/screensaver.splitflap-0.1.13.zip) | the screensaver |
+| [`screensaver.splitflap`](repo/screensaver.splitflap/screensaver.splitflap-0.1.14.zip) | the screensaver |
 | [`resource.images.splitflap.nimbus-ru`](repo/resource.images.splitflap.nimbus-ru/resource.images.splitflap.nimbus-ru-1.0.1.zip) | a glyph pack adding Cyrillic |
 | [`script.splitflap.source.recentlyadded`](repo/script.splitflap.source.recentlyadded/script.splitflap.source.recentlyadded-0.1.1.zip) | a source add-on showing the latest library additions |
 | [`repository.splitflap`](repo/repository.splitflap/repository.splitflap-1.0.0.zip) | this repository, so the others self-update |
