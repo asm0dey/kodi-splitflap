@@ -197,9 +197,26 @@ def test_text_moves_out_from_under_an_accent():
     b = build(["COURAGE IS RESISTANCE TO FEAR MASTERY OF FEAR NOT ABSENCE OF FEAR",
                "MARK TWAIN"],
               [{"corner": "top-left"}, {"corner": "top-right"}], 6, 22)
-    assert (0, 0) in b.accents and (0, 21) in b.accents
+    assert (0, 0) in b.accents
+    assert (0, 21) in b.accents
     assert all(b.grid[r][c] == " " for r, c in b.accents)
     assert "".join(b.grid).replace(" ", "").startswith("COURAGEIS")
+
+
+def test_a_line_with_no_padding_shifts_right_for_its_marker():
+    """An author line one short of full keeps its marker and its wrap.
+
+    Centred it sits flush left, so the marker resolved to column -1 and
+    vanished. The row takes the spare cell on its right instead, which
+    leaves the quote above it wrapped exactly as it was.
+    """
+    b = build(["PATIENCE IS BITTER BUT ITS FRUIT IS SWEET",
+               "JEAN-JACQUES ROUSSEAU"],
+              [{"before_line": 1}], 6, 22)
+    marker = next(iter(b.accents))
+    assert b.grid[marker.row][marker.col] == " "
+    assert b.grid[marker.row].strip() == "JEAN-JACQUES ROUSSEAU"
+    assert b.grid[1] == "PATIENCE IS BITTER BUT"
 
 
 def test_accent_is_dropped_when_the_text_cannot_move():

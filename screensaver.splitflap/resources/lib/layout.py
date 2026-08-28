@@ -91,7 +91,8 @@ def _compose(upper: list[str], accents: Sequence[Accent],
     wrapped, truncated = _fit_to_rows(wrapped, rows, width)
     # 4. Size the block to its line count and centre it vertically.
     top = (rows - len(wrapped)) // 2
-    grid, offsets = _lay_rows(wrapped, rows, cols, top, truncated, rtl)
+    grid, offsets = _lay_rows(wrapped, rows, cols, top, truncated, rtl,
+                              _marked_rows(accents, line_start))
 
     resolved = _resolve_accents(accents, rows, cols, top, line_start,
                                 offsets, wrapped)
@@ -131,9 +132,30 @@ def _fit_to_rows(wrapped: list[str], rows: int,
     return [*wrapped[:rows - 1], remainder], False
 
 
+def _marked_rows(accents: Sequence[Accent],
+                 line_start: list[int]) -> frozenset[int]:
+    """Which wrapped lines a `before_line` accent wants a cell to the left of."""
+    out = set()
+    for spec in accents or ():
+        if "before_line" not in spec:
+            continue
+        idx = int(spec["before_line"])
+        if 0 <= idx < len(line_start):
+            out.add(line_start[idx])
+    return frozenset(out)
+
+
 def _lay_rows(wrapped: list[str], rows: int, cols: int, top: int,
-              truncated: bool, rtl: bool) -> tuple[list[str], list[int]]:
-    """Place the wrapped block into the grid, returning rows and their padding."""
+              truncated: bool, rtl: bool,
+              marked: frozenset[int] = frozenset()) -> tuple[list[str], list[int]]:
+    """Place the wrapped block into the grid, returning rows and their padding.
+
+    A line that centres flush against the left edge leaves nowhere for its
+    marker. Where the row has a spare cell on the right, it shifts one
+    column right rather than losing the marker -- a cheaper answer than
+    re-wrapping the whole block narrower, and the only one when the block
+    reads better at its natural width.
+    """
     grid: list[str] = []
     offsets: list[int] = []
     for r in range(rows):
@@ -150,6 +172,8 @@ def _lay_rows(wrapped: list[str], rows: int, cols: int, top: int,
             row = text.ljust(cols, BLANK)[:cols]
         else:
             pad = (cols - len(text)) // 2
+            if not pad and i in marked and len(text) < cols:
+                pad = 1
             row = (BLANK * pad + text).ljust(cols, BLANK)[:cols]
         offsets.append(pad)
         grid.append(row)
@@ -228,7 +252,14 @@ def _accent_cell(spec: Accent, rows: int, cols: int, top: int,
 def _before_line_cell(spec: BeforeLineAccent, rows: int, top: int,
                       line_start: list[int], offsets: list[int],
                       wrapped: list[str]) -> Cell | None:
-    """The cell just left of where a given source line starts."""
+    """The cell just left of where a given source line starts.
+
+    A line wide enough to leave no padding has no cell to its left. Clamp
+    to the first column rather than resolving off-grid: the accent then
+    sits on a letter, which build() sees as a collision and answers with
+    the narrower wrap -- an accent that silently fell off the edge would
+    get no such second chance.
+    """
     idx = int(spec["before_line"])
     if not 0 <= idx < len(line_start):
         return None
@@ -238,4 +269,4 @@ def _before_line_cell(spec: BeforeLineAccent, rows: int, top: int,
     row = top + wrapped_idx
     if not 0 <= row < rows:
         return None
-    return Cell(row, offsets[row] - 1)
+    return Cell(row, max(0, offsets[row] - 1))
