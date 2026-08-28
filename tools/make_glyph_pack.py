@@ -115,13 +115,30 @@ def validate_addon_id(addon_id: str) -> str:
     return addon_id
 
 
-def read_chars_file(path: str) -> str:
-    """Read a `--chars-from` file, refusing anything that is not a real file.
+def read_chars_file(path: str, root: str | None = None) -> str:
+    """Read a `--chars-from` file from under `root` (default: the cwd).
 
-    A directory, a device node or a fifo here is a mistake rather than an
-    input, and a fifo would hang the build instead of failing it.
+    Two restrictions, both deliberate:
+
+    * The resolved path must sit under `root`. This builder is run from the
+      repo root by convention (as `tools/build_bundled.py` is), so a
+      letterset lives in the tree beside the font it will be rendered
+      with. Containing the read keeps an unchecked CLI argument -- or an
+      agent's faulty one -- from reaching an arbitrary file.
+    * It must be a regular file. A directory or device node here is a
+      mistake rather than an input, and a fifo would hang the build
+      instead of failing it.
+
+    Symlinks resolve before the check, so a link pointing out of the tree
+    is rejected on its target rather than admitted on its name.
     """
+    base = os.path.realpath(root if root is not None else os.getcwd())
     resolved = os.path.realpath(path)
+    if os.path.commonpath([base, resolved]) != base:
+        raise ValueError(
+            f"--chars-from must name a file under {base!r}, got {path!r}; "
+            "copy the letterset into the tree and point at it there"
+        )
     if not os.path.isfile(resolved):
         raise ValueError(f"--chars-from must be a readable file: {path!r}")
     with open(resolved, encoding="utf-8") as handle:

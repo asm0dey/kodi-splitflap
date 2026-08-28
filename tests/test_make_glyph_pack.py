@@ -103,9 +103,30 @@ def test_chars_from_must_be_a_regular_file(tmp_path):
 
     good = tmp_path / "chars.txt"
     good.write_text("AB", encoding="utf-8")
-    assert read_chars_file(str(good)) == "AB"
+    assert read_chars_file(str(good), root=str(tmp_path)) == "AB"
 
     with pytest.raises(ValueError):
-        read_chars_file(str(tmp_path))            # a directory
+        read_chars_file(str(tmp_path), root=str(tmp_path))          # a directory
     with pytest.raises(ValueError):
-        read_chars_file(str(tmp_path / "nope"))   # missing
+        read_chars_file(str(tmp_path / "nope"), root=str(tmp_path))  # missing
+
+
+def test_chars_from_cannot_escape_its_root(tmp_path):
+    """A path outside the root is refused, by target and not by name."""
+    from tools.make_glyph_pack import read_chars_file
+
+    outside = tmp_path / "outside.txt"
+    outside.write_text("Z", encoding="utf-8")
+    root = tmp_path / "root"
+    root.mkdir()
+
+    with pytest.raises(ValueError, match="under"):
+        read_chars_file(str(outside), root=str(root))
+    with pytest.raises(ValueError, match="under"):
+        read_chars_file(str(root / ".." / "outside.txt"), root=str(root))
+
+    # A symlink inside the root pointing out of it is judged on its target.
+    link = root / "link.txt"
+    link.symlink_to(outside)
+    with pytest.raises(ValueError, match="under"):
+        read_chars_file(str(link), root=str(root))
