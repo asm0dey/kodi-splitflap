@@ -16,7 +16,7 @@ jobs:
       # Pinned by commit SHA: a mutable tag lets the action's owner
       # change what runs in CI after review. Renovate tracks the
       # trailing version comment.
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
       # uv.lock is committed and Renovate-maintained, but `pip install -e`
       # ignored it and re-resolved every dependency on every run -- so CI
       # tested whatever happened to be newest on PyPI that morning, not the
