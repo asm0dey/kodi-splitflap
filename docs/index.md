@@ -16,7 +16,7 @@ Install the repository once and everything else follows, including updates.
 
 ### 1. Download the repository add-on
 
-**[⬇ repository.splitflap-1.0.0.zip](repo/repository.splitflap/repository.splitflap-1.0.0.zip)**
+**[⬇ repository.splitflap-1.1.0.zip](repo/repository.splitflap/repository.splitflap-1.1.0.zip)**
 
 Download it on the Kodi box itself, or copy it over with a USB stick or a
 network share.
@@ -70,7 +70,8 @@ directly — it will not update itself, and you will not get glyph packs:
 | [`screensaver.splitflap`](repo/screensaver.splitflap/screensaver.splitflap-0.1.16.zip) | the screensaver |
 | [`resource.images.splitflap.nimbus-ru`](repo/resource.images.splitflap.nimbus-ru/resource.images.splitflap.nimbus-ru-1.0.1.zip) | a glyph pack adding Cyrillic |
 | [`script.splitflap.source.recentlyadded`](repo/script.splitflap.source.recentlyadded/script.splitflap.source.recentlyadded-0.1.1.zip) | a source add-on showing the latest library additions |
-| [`repository.splitflap`](repo/repository.splitflap/repository.splitflap-1.0.0.zip) | this repository, so the others self-update |
+| [`script.floppy`](repo/script.floppy/script.floppy-0.1.0.zip) | syncs watch history and resume points with a self-hosted [Floppy](https://github.com/dannyvfilms/Floppy) server ([source](https://github.com/asm0dey/script.floppy)) |
+| [`repository.splitflap`](repo/repository.splitflap/repository.splitflap-1.1.0.zip) | this repository, so the others self-update |
 
 The bundled glyphs cover capitals-only extended ASCII — Western European out of
 the box. Anything else shows as tofu (□) until you install a pack, which

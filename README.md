@@ -11,7 +11,7 @@ while its neighbour ticks once.
 
 ## Install
 
-**[⬇ repository.splitflap-1.0.0.zip](https://asm0dey.github.io/kodi-splitflap/repo/repository.splitflap/repository.splitflap-1.0.0.zip)**
+**[⬇ repository.splitflap-1.1.0.zip](https://asm0dey.github.io/kodi-splitflap/repo/repository.splitflap/repository.splitflap-1.1.0.zip)**
 — install this one file and everything else follows.
 
 Settings → Add-ons → **Install from zip file** → pick that zip. Then
@@ -39,7 +39,7 @@ the URL across fields rather than taking it whole:
 | Port | 443 |
 
 Leave username and password empty. That builds
-`https://asm0dey.github.io:443/kodi-splitflap/repo`, which lists the four
+`https://asm0dey.github.io:443/kodi-splitflap/repo`, which lists the five
 add-on directories. Name the source `splitflap`, then Install from zip file
 → splitflap → `repository.splitflap/`.
 
@@ -50,6 +50,7 @@ Direct downloads, no updates:
 - **[screensaver.splitflap](https://asm0dey.github.io/kodi-splitflap/repo/screensaver.splitflap/screensaver.splitflap-0.1.16.zip)** — the screensaver
 - **[resource.images.splitflap.nimbus-ru](https://asm0dey.github.io/kodi-splitflap/repo/resource.images.splitflap.nimbus-ru/resource.images.splitflap.nimbus-ru-1.0.1.zip)** — Cyrillic glyph pack
 - **[script.splitflap.source.recentlyadded](https://asm0dey.github.io/kodi-splitflap/repo/script.splitflap.source.recentlyadded/script.splitflap.source.recentlyadded-0.1.1.zip)** — Recently Added source add-on
+- **[script.floppy](https://asm0dey.github.io/kodi-splitflap/repo/script.floppy/script.floppy-0.1.0.zip)** — Floppy watch-history sync ([source](https://github.com/asm0dey/script.floppy))
 
 Or build one yourself with `tools/build_addon.sh` (see Development below).
 

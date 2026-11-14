@@ -9,17 +9,26 @@ the normal add-on browser, with no zips and no typing a URL on a remote.
 Discovers add-ons by looking for a directory whose name matches the `id` in
 the `addon.xml` it contains, so adding a fourth add-on to the repo needs no
 change here.
+
+Add-ons that live in their own repositories are listed in
+`external-addons.json` by release zip URL and sha256. Their zips are pulled
+in as published, never rebuilt, so what Kodi installs is byte-for-byte the
+release the other repo tagged.
 """
 
 import hashlib
+import io
+import json
 import pathlib
 import shutil
 import sys
+import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS = REPO_ROOT / "docs" / "repo"
+EXTERNAL = REPO_ROOT / "external-addons.json"
 
 # Never ship these, whichever add-on they turn up in. The .otf is a build-time
 # input to the glyph renderer; its licence files DO ship, because the rendered
@@ -63,6 +72,35 @@ def package(source: pathlib.Path, version: str) -> pathlib.Path:
             # id; a flat archive fails to install with no useful message.
             archive.write(item, pathlib.Path(source.name) / item.relative_to(source))
     return out
+
+
+def fetch_external(entry: dict, docs: pathlib.Path) -> ET.Element:
+    """Download one external add-on's release zip into the datadir.
+
+    Refuses the zip unless its sha256 is the pinned one and the addon.xml
+    inside names the expected id -- a moved tag or a wrong URL must fail the
+    build, not ship something else under this repository's name.
+    """
+    addon_id = entry["id"]
+    with urllib.request.urlopen(entry["zip_url"], timeout=60) as response:
+        data = response.read()
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != entry["sha256"]:
+        raise SystemExit(f"{addon_id}: sha256 {digest} != pinned {entry['sha256']}")
+
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        root = ET.fromstring(archive.read(f"{addon_id}/addon.xml"))
+        if root.get("id") != addon_id:
+            raise SystemExit(f"{addon_id}: zip's addon.xml id is {root.get('id')!r}")
+        out_dir = docs / addon_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        version = root.get("version", "0.0.0")
+        (out_dir / f"{addon_id}-{version}.zip").write_bytes(data)
+        # Same reason as for local add-ons: Kodi reads these from the datadir.
+        for asset in ("icon.png", "fanart.jpg"):
+            if f"{addon_id}/{asset}" in archive.namelist():
+                (out_dir / asset).write_bytes(archive.read(f"{addon_id}/{asset}"))
+    return root
 
 
 def write_listing(directory: pathlib.Path) -> None:
@@ -113,6 +151,15 @@ def main() -> int:
             if (source / asset).is_file():
                 shutil.copy2(source / asset, DOCS / source.name / asset)
 
+    external = json.loads(EXTERNAL.read_text()) if EXTERNAL.is_file() else []
+    for entry in external:
+        manifest = fetch_external(entry, DOCS)
+        index.append(manifest)
+        print(f"{entry['id']:38} {manifest.get('version'):8} (external)")
+    ids = [m.get("id", "") for m in index]
+    if len(ids) != len(set(ids)):
+        raise SystemExit(f"duplicate add-on ids: {ids}")
+
     xml = ET.tostring(index, encoding="utf-8", xml_declaration=True)
     (DOCS / "addons.xml").write_bytes(xml)
     # md5 because the Kodi repository FORMAT requires an addons.xml.md5
@@ -121,14 +168,14 @@ def main() -> int:
     # usedforsecurity=False says so to the interpreter and to scanners.
     digest = hashlib.md5(xml, usedforsecurity=False).hexdigest()
     (DOCS / "addons.xml.md5").write_text(digest, encoding="utf-8")
-    print(f"\naddons.xml  {len(addons)} add-ons, md5 {digest}")
+    print(f"\naddons.xml  {len(ids)} add-ons, md5 {digest}")
 
     # Last, so every zip, icon and checksum above is already in place to be
     # listed -- and the add-on directories before the root, which links them.
-    for source, _ in addons:
-        write_listing(DOCS / source.name)
+    for addon_id in ids:
+        write_listing(DOCS / addon_id)
     write_listing(DOCS)
-    print(f"index.html  {len(addons) + 1} directory listings")
+    print(f"index.html  {len(ids) + 1} directory listings")
     return 0
 
 
